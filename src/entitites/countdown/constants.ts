@@ -5,6 +5,13 @@ export enum CountdownState {
 }
 
 export enum IntervalType {
+  INITIAL = "initial",
   WORK = "work",
   REST = "rest",
 }
+
+export const IntervalTypeEmoji: Record<IntervalType, string> = {
+  initial: "",
+  work: "🧑🏻‍💻",
+  rest: "🌴",
+};

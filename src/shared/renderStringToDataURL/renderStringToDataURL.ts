@@ -7,15 +7,58 @@ export function renderStringToDataURL(
   canvas?: HTMLCanvasElement
 ): string {
   const canvasRender = canvas || document.createElement("canvas");
-  const ctx = canvasRender.getContext("2d")!;
-  ctx.font = "16px Arial";
-  ctx.fillStyle = "white";
-  ctx.fillText(text, 0, 25);
 
-  canvasRender.width = ctx.measureText(text).width;
-  canvasRender.height = 25;
-  canvasRender.style.width = canvasRender.width + "px";
-  canvasRender.style.height = canvasRender.height + "px";
+  canvasRender.width = 100;
+  canvasRender.height = 36;
 
-  return canvasRender.toDataURL();
+  const ctx = canvasRender.getContext("2d");
+
+  if (!ctx) {
+    return "";
+  }
+
+  ctx.font = '24px "IBM Plex Mono"';
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.lineWidth = 2;
+
+  roundRect(
+    ctx,
+    ctx.lineWidth,
+    ctx.lineWidth,
+    canvasRender.width - ctx.lineWidth * 2,
+    canvasRender.height - ctx.lineWidth * 2,
+    8
+  );
+
+  // draw text
+  ctx.fillText(text, canvasRender.width * 0.5, 27);
+
+  const dataURL = canvasRender.toDataURL("image/png");
+
+  return dataURL;
+}
+
+function roundRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radius: number
+) {
+  var r = x + w;
+  var b = y + h;
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.lineTo(r - radius, y);
+  context.quadraticCurveTo(r, y, r, y + radius);
+  context.lineTo(r, y + h - radius);
+  context.quadraticCurveTo(r, b, r - radius, b);
+  context.lineTo(x + radius, b);
+  context.quadraticCurveTo(x, b, x, b - radius);
+  context.lineTo(x, y + radius);
+  context.quadraticCurveTo(x, y, x + radius, y);
+  context.stroke();
 }

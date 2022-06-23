@@ -1,0 +1,4 @@
+
+.progressRing {
+    --progress-ring-background: conic-gradient(from 90deg, #e93418 0%, #E95139 40%, #E87980 98.8%, #e93418 98.8%);
+}

@@ -102,7 +102,7 @@ describe("entity/countdown/model", () => {
 
     allSettled(events.start, { scope, params: START_PARAMS });
     await wait(200);
-    await allSettled(events.stop, { scope });
+    await allSettled(events.stop, { scope, params: { save: false } });
 
     expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
   });
@@ -116,7 +116,7 @@ describe("entity/countdown/model", () => {
 
     allSettled(events.start, { scope, params: START_PARAMS });
     await wait(300);
-    await allSettled(events.stop, { scope });
+    await allSettled(events.stop, { scope, params: { save: true } });
 
     expect(fn).toHaveBeenCalledWith({
       elapsedTime: 3,

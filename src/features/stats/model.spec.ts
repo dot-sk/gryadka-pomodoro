@@ -36,8 +36,11 @@ describe("features/stats/model", () => {
 
     const firstEntry = statsScope.getState($statEntriesHistory)[0];
 
-    expect(firstEntry.time).toBe(2);
-    expect(firstEntry.type).toBe(IntervalType.WORK);
+    expect(firstEntry).toMatchObject({
+      time: 2,
+      interval: 2,
+      type: IntervalType.WORK,
+    });
   });
 
   it.skip("должен сохранить правильные таймстемпы", async () => {
@@ -77,6 +80,7 @@ describe("features/stats/model", () => {
       start: 0,
       end: 0,
       time: 0,
+      interval: 0,
       type: StatEntryOwnTypes.INITIAL,
     });
   });
@@ -126,4 +130,6 @@ describe("features/stats/model", () => {
 
     expect(statsScope.getState($totalToday)).toBe(6);
   });
+
+  it('должен вернуть самую свежую запись типа "work"', async () => {});
 });

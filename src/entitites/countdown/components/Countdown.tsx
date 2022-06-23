@@ -1,13 +1,19 @@
 import { useStore } from "effector-react";
-import { formatTime } from "../../../shared/utils";
-import { $time, $currentInterval } from "../model";
-import { CircleProgress } from "../../../shared/components/CircleProgress";
+import { formatSeconds } from "../../../shared/utils";
+import { $countdownType, $time } from "../model";
+import { IntervalTypeEmoji } from "../constants";
 
-// A component that displays a timeControls timer.
 export const Countdown = () => {
   const time = useStore($time);
-  const currentInterval = useStore($currentInterval) || 1;
-  const progress = time / currentInterval;
+  const type = useStore($countdownType);
 
-  return <div className="font-mono text-5xl">{formatTime(time)}</div>;
+  return (
+    <div className="font-mono text-5xl relative">
+      {formatSeconds(time)}
+
+      <span className="absolute top-[-35px] left-1/2 transform -translate-x-1/2 text-2xl">
+        {IntervalTypeEmoji[type]}
+      </span>
+    </div>
+  );
 };

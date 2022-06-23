@@ -1,14 +1,15 @@
-import { app, BrowserWindow, ipcMain, Tray, nativeImage } from "electron";
+import { app, BrowserWindow, ipcMain, Tray, nativeImage, Menu } from "electron";
 import * as path from "path";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 import { IpcChannels } from "../src/shared/ipc/constants";
-// import { renderStringToDataURL } from "../src/shared/renderStringToDataURL/renderStringToDataURL";
 import { formatTime } from "../src/shared/utils";
 
+let window: BrowserWindow | null;
+
 function createWindow() {
-  const window = new BrowserWindow({
+  window = new BrowserWindow({
     width: 375,
     height: 630,
     show: false,
@@ -24,13 +25,16 @@ function createWindow() {
   });
 
   window.on("blur", () => {
-    if (!window.webContents.isDevToolsOpened()) {
-      window.hide();
+    if (!window?.webContents.isDevToolsOpened()) {
+      window?.hide();
     }
   });
 
+  window.on("close", () => {
+    window = null;
+  });
+
   if (app.isPackaged) {
-    // 'build/index.html'
     window.loadURL(`file://${__dirname}/../index.html`);
   } else {
     window.loadURL("http://localhost:3000/index.html");
@@ -49,11 +53,9 @@ function createWindow() {
       hardResetMethod: "exit",
     });
   }
-
-  return window;
 }
 
-// app.dock.hide();
+app.dock.hide();
 
 app.whenReady().then(() => {
   // DevTools
@@ -61,52 +63,69 @@ app.whenReady().then(() => {
     .then((name) => console.log(`Added Extension:  ${name}`))
     .catch((err) => console.log("An error occurred: ", err));
 
-  let window = createWindow();
+  createWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      window = createWindow();
+      createWindow();
     }
   });
 
   app.on("window-all-closed", () => {
-    // if (process.platform !== "darwin") {
-    app.quit();
-    // }
+    if (process.platform !== "darwin") {
+      app.quit();
+    }
   });
 
   const trayIcon = nativeImage.createEmpty();
   const tray = new Tray(trayIcon);
-  tray.setTitle("0:00");
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Выйти", type: "normal", click: () => app.quit() },
+  ]);
 
   tray.on("click", (e, bounds) => {
-    const { x, y, height: trayHeight } = bounds;
-    const { width, height } = window.getBounds();
-
-    if (window.isVisible()) {
-      return window.hide();
+    if (!window) {
+      createWindow();
     }
 
-    window.setBounds({
+    const { x, y, height: trayHeight } = bounds;
+    const { width, height } = window?.getBounds() || {};
+
+    if (window?.isVisible()) {
+      return window?.hide();
+    }
+
+    window?.setBounds({
       x,
       y: y + trayHeight,
       width,
       height,
     });
-    window.show();
+    window?.show();
 
     // Show devtools when command clicked
-    if (window.isVisible() && process.defaultApp && e.metaKey) {
-      window.webContents.openDevTools({ mode: "detach" });
+    if (window?.isVisible() && process.defaultApp && e.metaKey) {
+      window?.webContents.openDevTools({ mode: "detach" });
     }
   });
 
-  // ipcMain.on(
-  //   IpcChannels["timeControls-seconds-as-image"],
-  //   (event, dataURL: string) => {
-  //     tray.setImage(nativeImage.createFromDataURL(dataURL));
-  //   }
-  // );
+  tray.on("right-click", (e, bounds) => {
+    tray.popUpContextMenu(contextMenu);
+  });
+
+  tray.setTitle("...");
+
+  ipcMain.on(
+    IpcChannels["countdown-tick-as-image"],
+    (event, dataURL: string) => {
+      const image = nativeImage.createFromDataURL(dataURL);
+      const { width, height } = image.getSize();
+
+      tray.setTitle("");
+      tray.setImage(image.resize({ width: width / 2, height: height / 2 }));
+    }
+  );
 
   ipcMain.on(IpcChannels["countdown-tick"], (event, seconds: string) => {
     const secNumber = parseInt(seconds, 10);

@@ -1,7 +1,11 @@
-import { combine, createDomain, forward, merge, sample, split } from "effector";
+import { combine, createDomain, forward, merge, sample } from "effector";
 import { CountdownState, IntervalType } from "./constants";
 import { wait } from "../../shared/utils";
-import { CountdownStartPayload, CountdownEndPayload } from "./typings";
+import {
+  CountdownStartPayload,
+  CountdownEndPayload,
+  CountdownStopPayload,
+} from "./typings";
 
 const ONE_SEC = 1000;
 
@@ -11,7 +15,7 @@ export const events = {
   start: domain.event<CountdownStartPayload>(),
   pause: domain.event(),
   resume: domain.event(),
-  stop: domain.event(), // external event
+  stop: domain.event<CountdownStopPayload>(), // external event
   end: domain.event<CountdownEndPayload>(), // internal event
   reset: domain.event(),
   setTime: domain.event<number>(),
@@ -46,6 +50,10 @@ const stopGuard = sample({
   source: events.stop,
   filter: $countdownState.map((state) => state !== CountdownState.INITIAL),
 });
+
+const stopAndSaveGuard = stopGuard.filterMap(({ save }) =>
+  save === true ? save : undefined
+);
 
 export const $countdownType = domain
   .createStore<IntervalType>(IntervalType.WORK)
@@ -110,7 +118,7 @@ forward({
 });
 
 sample({
-  clock: merge([stopGuard, timeZero]),
+  clock: merge([stopAndSaveGuard, timeZero]),
   source: combine($time, $currentInterval).map(([time, currentInterval]) => ({
     elapsedTime: currentInterval - time,
   })),

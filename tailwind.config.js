@@ -5,7 +5,7 @@ module.exports = {
     fontFamily: {
       sans: ["Favorit", "sans-serif"],
       sansWide: ["Favorit Extended", "sans-serif"],
-      mono: ["Cousine", "monospace"],
+      mono: ["IBM Plex Mono", "monospace"],
     },
     extend: {},
   },
