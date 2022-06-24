@@ -64,7 +64,7 @@ export const SettingsPanel = () => {
           <span className="mr-2">Цель на день</span>
           <input
             name="dailyTargetSeconds"
-            type="string"
+            type="text"
             value={dailyGoal}
             onChange={handleGoalChange}
             className="flex-1"
@@ -89,7 +89,7 @@ export const SettingsPanel = () => {
           <span>Интервалы работы</span>
           <input
             name="workIntervals"
-            type="string"
+            type="text"
             onChange={handleIntervalsChange}
             value={workInterval}
           />
@@ -101,7 +101,7 @@ export const SettingsPanel = () => {
           <span>Интервалы отдыха</span>
           <input
             name="restIntervals"
-            type="string"
+            type="text"
             onChange={handleIntervalsChange}
             value={restInterval}
           />

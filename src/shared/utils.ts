@@ -38,16 +38,27 @@ export const formatTime = (ms: number) =>
 
 // function parses human-readable format to seconds
 export function parseSeconds(time: string) {
-  const parts = time.split(":").map(Number);
+  const parts = time
+    .split(":")
+    .filter((part) => part.length === 2)
+    .map(Number);
 
   // if there is NaN in parts, return null
   if (parts.some(isNaN)) {
     return null;
   }
 
-  const [hh, mm, ss] = parts;
-  const seconds = hh * 60 * 60 + mm * 60 + ss;
-  return seconds;
+  switch (parts.length) {
+    case 1:
+      return parts[0];
+    case 2:
+      return parts[0] * 60 + parts[1];
+    case 3:
+      const [hh, mm, ss] = parts;
+      return hh * 60 * 60 + mm * 60 + ss;
+    default:
+      return 0;
+  }
 }
 
 export const wait = (ms: number) =>

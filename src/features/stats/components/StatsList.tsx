@@ -15,11 +15,14 @@ function sumStatEntriesTime(statEntries: StatEntry[]) {
   return statEntries.reduce((acc, entry) => acc + entry.time, 0);
 }
 
-export const StatsList = () => {
+type StatsListProps = {
+  className?: string;
+};
+export const StatsList = ({ className = "" }: StatsListProps) => {
   const entriesByDate = useStore($statEntriesHistoryAscByDate);
 
   return (
-    <div className="flex flex-col space-y-2">
+    <div className={`flex flex-col space-y-2 ${className}`}>
       {Object.entries(entriesByDate).map(([date, entries]) => (
         <div key={date} className="flex flex-col space-y-2">
           <div className="flex flex-col space-y-2">
@@ -27,12 +30,12 @@ export const StatsList = () => {
               {`${date}, Σ ${formatSeconds(sumStatEntriesTime(entries))}`}
             </span>
             <span>
-              {entries.map((entry) => {
+              {entries.map((entry, i) => {
                 const { start, end, time, type } = entry;
 
                 return (
                   <div
-                    key={`${start}-${end}`}
+                    key={`${start}-${end}-${i}`}
                     className="relative grid grid-cols-3"
                   >
                     <span>{formatTime(start)}</span>

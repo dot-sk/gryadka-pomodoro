@@ -65,7 +65,7 @@ export const $statEntriesHistoryAscByDate =
 const getTomorrow = () =>
   new Date(new Date().setDate(new Date().getDate() + 1));
 
-// функция определяет, что дата между сегодня 6 утра и завтра 6 утра
+// функция определяет, что дата между сегодня 0 часов и завтра 0 часов
 const isBetweenTodayAndTomorrow = (date: number) =>
   date >= new Date().setHours(0, 0, 0, 0) &&
   date < getTomorrow().setHours(0, 0, 0, 0);

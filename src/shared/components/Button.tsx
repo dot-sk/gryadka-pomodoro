@@ -7,7 +7,6 @@ type ButtonProps = ComponentProps<"button"> & {
 export const Button = ({
   children,
   className,
-  onClick,
   primary = false,
   ...props
 }: ButtonProps) => {
@@ -16,7 +15,6 @@ export const Button = ({
       className={`rounded-full py-2 px-4 shadow-lg ${
         primary ? "bg-black text-white" : "bg-gray-300 text-white"
       } ${className}`}
-      onClick={onClick}
       {...props}
     >
       {children}

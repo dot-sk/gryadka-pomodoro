@@ -8,9 +8,9 @@ import { minToSec } from "../../shared/utils";
 import { NavBar } from "../../widgets/navBar";
 import { Button } from "../../shared/components/Button";
 import { SettingsPanel } from "../../entitites/settings/components/SettingsPanel";
-import { StatsList } from "../../features/stats";
+import { CreateEntryForm, StatsList } from "../../features/stats";
 import { settingsModel } from "../../entitites/settings";
-import { $workIntervals } from "../../entitites/settings/model";
+import { ToggleVisibility } from "../../shared/components/ToggleVisibility";
 
 const Countdown = () => {
   return (
@@ -89,7 +89,10 @@ const TimerTab = () => {
 const StatsTab = () => {
   return (
     <div className="py-4">
-      <StatsList />
+      <ToggleVisibility title="Создать запись">
+        <CreateEntryForm />
+      </ToggleVisibility>
+      <StatsList className="mt-4" />
     </div>
   );
 };
