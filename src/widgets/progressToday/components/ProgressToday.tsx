@@ -4,7 +4,7 @@ import { useStore } from "effector-react";
 import { statsModel } from "../../../features/stats";
 import { useEffect, useRef, useState } from "react";
 import css from "./ProgressToday.module.css";
-import { LineProgress } from "../../../shared/components/LineProgress";
+import { LinearProgress } from "../../../shared/components/LinearProgress";
 import { settingsModel } from "../../../entitites/settings";
 
 export const ProgressToday = () => {
@@ -38,7 +38,7 @@ export const ProgressToday = () => {
       </div>
 
       <div className="absolute z-10 w-12 bottom-0 left-1/2 transform -translate-x-1/2">
-        <LineProgress value={totalToday} max={dailyGoal} />
+        <LinearProgress value={totalToday} max={dailyGoal} />
       </div>
 
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">

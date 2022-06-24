@@ -7,3 +7,5 @@ require("@testing-library/jest-dom");
 HTMLCanvasElement.prototype.getContext = () => {
   return null;
 };
+
+document.fonts = { ready: Promise.resolve() };

@@ -18,10 +18,9 @@ describe("features/mainThread/model", () => {
       scope,
       params: { interval: 5, type: IntervalType.WORK },
     });
-    // ожидаем 7, а не 5, т.к.
+    // ожидаем 6, а не 5, т.к.
     // +1 обновление при создании стора
-    // и +1 в конце - время установится в значение интервала, который закончился
-    expect(spy).toHaveBeenCalledTimes(7);
+    expect(spy).toHaveBeenCalledTimes(6);
     expect(spy).toHaveBeenCalledWith(
       IpcChannels["countdown-tick-as-image"],
       expect.any(String)
