@@ -1,25 +1,16 @@
-import { combine, createDomain, forward, sample, split } from "effector";
+import { createDomain, forward, sample } from "effector";
 import connectLocalStorage from "effector-localstorage";
 import { countdownModel } from "../../entitites/countdown";
 import { StatEntry } from "./typings";
 import { StatEntryOwnTypes } from "./constants";
 import { IntervalType } from "../../entitites/countdown/constants";
-import { formatSecondsDate } from "../../shared/utils";
-
-// function maps array of StatEntries by start date to object with keys as dates formatted as DD/MM/YYYY
-function mapStatEntriesByDate(statEntries: StatEntry[]) {
-  const result: { [key: string]: StatEntry[] } = {};
-
-  statEntries.forEach((entry) => {
-    const date = formatSecondsDate(entry.start / 1000);
-    if (!result[date]) {
-      result[date] = [];
-    }
-    result[date].push(entry);
-  });
-
-  return result;
-}
+import {
+  isBetweenTodayAndTomorrow,
+  mapStatEntriesByDate,
+  mapStatEntriesByHours,
+  secToMinutes,
+  sumStatEntriesTime,
+} from "./utils";
 
 export const domain = createDomain();
 
@@ -61,24 +52,31 @@ export const $statEntriesHistoryAsc = $statEntriesHistory.map((entries) =>
 export const $statEntriesHistoryAscByDate =
   $statEntriesHistoryAsc.map(mapStatEntriesByDate);
 
-// a function that returns tomorrow's date
-const getTomorrow = () =>
-  new Date(new Date().setDate(new Date().getDate() + 1));
+export const $statEntriesHistoryHoursSumByDateAsc =
+  $statEntriesHistoryAscByDate.map((entries) =>
+    Object.entries(entries).map(([date, entries]) => {
+      const hours = mapStatEntriesByHours(entries);
 
-// функция определяет, что дата между сегодня 0 часов и завтра 0 часов
-const isBetweenTodayAndTomorrow = (date: number) =>
-  date >= new Date().setHours(0, 0, 0, 0) &&
-  date < getTomorrow().setHours(0, 0, 0, 0);
+      const sumByHours = Object.entries(hours).map((value) => {
+        return [value[0], sumStatEntriesTime(value[1])] as const;
+      });
 
-export const $totalToday = combine($statEntriesHistory, (entries) => {
-  return entries.reduce((acc, entry) => {
-    if (isBetweenTodayAndTomorrow(entry.end)) {
-      return acc + entry.time;
-    }
+      return [date, sumByHours] as const;
+    }, {})
+  );
 
-    return acc;
-  }, 0);
-});
+export const $todayEntries = $statEntriesHistory.map((entries) =>
+  entries.filter((entry) => isBetweenTodayAndTomorrow(entry.end))
+);
+
+export const $todayEntriesByHours = $todayEntries.map(mapStatEntriesByHours);
+export const $todayEntriesByHoursSum = $todayEntriesByHours.map((entries) =>
+  Object.entries(entries).map((value) => {
+    return [value[0], sumStatEntriesTime(value[1])] as const;
+  })
+);
+
+export const $totalToday = $todayEntries.map(sumStatEntriesTime);
 
 export const $latestWorkEntry = domain
   .createStore<StatEntry | null>(null)

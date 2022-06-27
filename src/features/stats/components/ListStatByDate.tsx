@@ -2,7 +2,7 @@ import { useStore } from "effector-react";
 import { $statEntriesHistoryAscByDate, events } from "../model";
 import { formatSeconds, formatTime } from "../../../shared/utils";
 import { IntervalType } from "../../../entitites/countdown/constants";
-import { StatEntry } from "../typings";
+import { sumStatEntriesTime } from "../utils";
 
 const TYPE_TRANSLATION = {
   [IntervalType.INITIAL]: "",
@@ -10,15 +10,10 @@ const TYPE_TRANSLATION = {
   [IntervalType.REST]: "Отдых",
 };
 
-// function sums up all time properties of StatEntries
-function sumStatEntriesTime(statEntries: StatEntry[]) {
-  return statEntries.reduce((acc, entry) => acc + entry.time, 0);
-}
-
 type StatsListProps = {
   className?: string;
 };
-export const StatsList = ({ className = "" }: StatsListProps) => {
+export const ListStatByDate = ({ className = "" }: StatsListProps) => {
   const entriesByDate = useStore($statEntriesHistoryAscByDate);
 
   return (

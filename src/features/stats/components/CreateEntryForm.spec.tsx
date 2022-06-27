@@ -34,7 +34,7 @@ const getDatetimeLocal = (hours = 0, minutes = 0) => {
   )}-${todayAtTen.getDate()}T${todayAtTen.getHours()}:${todayAtTen.getMinutes()}`;
 };
 
-describe("CreateEntryFormPure", () => {
+describe("CreateEntryForm", () => {
   afterEach(() => {
     cleanup();
   });

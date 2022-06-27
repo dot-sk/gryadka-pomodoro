@@ -8,9 +8,13 @@ import { minToSec } from "../../shared/utils";
 import { NavBar } from "../../widgets/navBar";
 import { Button } from "../../shared/components/Button";
 import { SettingsPanel } from "../../entitites/settings/components/SettingsPanel";
-import { CreateEntryForm, StatsList } from "../../features/stats";
+import { CreateEntryForm, ListStatByDate } from "../../features/stats";
 import { settingsModel } from "../../entitites/settings";
 import { ToggleVisibility } from "../../shared/components/ToggleVisibility";
+import {
+  GridStatHoursToday,
+  GridStatSumHoursByDate,
+} from "../../features/stats/components/GridStat";
 
 const Countdown = () => {
   return (
@@ -89,10 +93,17 @@ const TimerTab = () => {
 const StatsTab = () => {
   return (
     <div className="py-4">
-      <ToggleVisibility title="Создать запись">
+      <div>
+        <GridStatSumHoursByDate />
+      </div>
+
+      <ToggleVisibility title="Создать запись" appear={false}>
         <CreateEntryForm />
       </ToggleVisibility>
-      <StatsList className="mt-4" />
+
+      <ToggleVisibility title={"Статистика по дням"} appear={false}>
+        <ListStatByDate />
+      </ToggleVisibility>
     </div>
   );
 };

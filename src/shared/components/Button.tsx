@@ -1,4 +1,4 @@
-import { ComponentProps } from "react";
+import React, { ComponentProps } from "react";
 
 type ButtonProps = ComponentProps<"button"> & {
   primary?: boolean;

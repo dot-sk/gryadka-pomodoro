@@ -33,6 +33,13 @@ export function formatSeconds(
   return time;
 }
 
+export const formatHours = (
+  hours: number,
+  params?: Parameters<typeof formatSeconds>[1]
+) => {
+  return formatSeconds(hours * 60 * 60, params);
+};
+
 export const formatTime = (ms: number) =>
   formatSeconds(ms / 1000, { omitEmpty: false, utc: false });
 

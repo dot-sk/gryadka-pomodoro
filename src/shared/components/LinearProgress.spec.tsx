@@ -16,7 +16,7 @@ describe("LinearProgress", () => {
     );
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
-        class="flex flex-col space-y-2 w-full rounded-full overflow-hidden"
+        class="flex rounded-full overflow-hidden w-full"
         data-testid="lineProgressContainer"
         style="background: rgb(234, 234, 234);"
       >
@@ -36,7 +36,7 @@ describe("LinearProgress", () => {
     expect(getByTestId("lineProgress").style.transform).toBe("scaleX(0.5)");
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
-        class="flex flex-col space-y-2 w-full rounded-full overflow-hidden"
+        class="flex rounded-full overflow-hidden w-full"
         data-testid="lineProgressContainer"
         style="background: rgb(234, 234, 234);"
       >
@@ -55,7 +55,7 @@ describe("LinearProgress", () => {
     expect(getByTestId("lineProgress").style.transform).toBe("scaleX(0)");
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
-        class="flex flex-col space-y-2 w-full rounded-full overflow-hidden"
+        class="flex rounded-full overflow-hidden w-full"
         data-testid="lineProgressContainer"
         style="background: rgb(234, 234, 234);"
       >
@@ -74,7 +74,7 @@ describe("LinearProgress", () => {
     expect(getByTestId("lineProgress").style.transform).toBe("scaleX(1)");
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
-        class="flex flex-col space-y-2 w-full rounded-full overflow-hidden"
+        class="flex rounded-full overflow-hidden w-full"
         data-testid="lineProgressContainer"
         style="background: rgb(234, 234, 234);"
       >
