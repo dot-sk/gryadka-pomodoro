@@ -1,9 +1,18 @@
+const getColor = (theme: 'dark' | 'light') => {
+  if (theme === 'dark') {
+    return 'rgba(255, 255, 255, 0.85)';
+  }
+
+  return 'rgba(0, 0, 0, 0.85)';
+}
+
 /**
  * Function receives a string of text and returns a data URL of the rendered text.
  * @param canvas
  */
 export function renderStringToDataURL(
   text: string,
+  theme: 'dark' | 'light' = 'dark',
   canvas?: HTMLCanvasElement
 ): string {
   const canvasRender = canvas || document.createElement("canvas");
@@ -17,10 +26,12 @@ export function renderStringToDataURL(
     return "";
   }
 
+  const color = getColor(theme);
+
   ctx.font = '24px "IBM Plex Mono"';
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
   ctx.lineWidth = 2;
 
   roundRect(

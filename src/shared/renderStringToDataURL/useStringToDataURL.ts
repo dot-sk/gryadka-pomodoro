@@ -4,7 +4,7 @@ import { renderStringToDataURL } from "./renderStringToDataURL";
 export function useStringToDataURL(): (str: string) => string {
   const canvas = useRef(document.createElement("canvas"));
   const render = useCallback(
-    (str: string) => renderStringToDataURL(str, canvas.current),
+    (str: string) => renderStringToDataURL(str, 'light', canvas.current),
     []
   );
 
@@ -14,3 +14,4 @@ export function useStringToDataURL(): (str: string) => string {
 
   return render;
 }
+

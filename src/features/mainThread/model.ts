@@ -1,10 +1,13 @@
 import { countdownModel } from "../../entitites/countdown";
-import { ipc } from "../../shared/ipc/ipc";
-import { IpcChannels } from "../../shared/ipc/constants";
+import { ipcWorld } from "../../shared/ipcWorld/ipcWorld";
+import { IpcChannels } from "../../shared/ipcWorld/constants";
 import { renderStringToDataURL } from "../../shared/renderStringToDataURL/renderStringToDataURL";
 import { formatSeconds, whenFontsReady } from "../../shared/utils";
 import { createDomain, merge, sample } from "effector";
 
+/**
+ * основная модель для App
+ */
 const domain = createDomain("mainThread");
 
 const events = {
@@ -26,8 +29,8 @@ const willRender = sample({
 });
 
 willRender.watch((time) => {
-  ipc.send(
+  ipcWorld.send(
     IpcChannels["countdown-tick-as-image"],
-    renderStringToDataURL(formatSeconds(time))
+    renderStringToDataURL(formatSeconds(time), 'light')
   );
 });

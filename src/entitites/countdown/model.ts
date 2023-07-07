@@ -1,13 +1,12 @@
 import { combine, createDomain, forward, merge, sample } from "effector";
 import { CountdownState, IntervalType } from "./constants";
-import { wait } from "../../shared/utils";
 import {
   CountdownStartPayload,
   CountdownEndPayload,
   CountdownStopPayload,
 } from "./typings";
-
-const ONE_SEC = 1000;
+import { ipcWorld } from "../../shared/ipcWorld/ipcWorld";
+import { IpcChannels } from "../../shared/ipcWorld/constants";
 
 export const domain = createDomain();
 
@@ -20,11 +19,12 @@ export const events = {
   reset: domain.event(),
   setTime: domain.event<number>(),
   setType: domain.event<IntervalType>(),
+  clockInterval: domain.event<number>()
 };
 
-export const effects = {
-  tickEffect: domain.createEffect(() => wait(ONE_SEC)),
-};
+ipcWorld.on(IpcChannels["clock:tick"], (_, msSinceLastTick) => {
+  events.clockInterval(msSinceLastTick)
+})
 
 const startTypeGuard = events.start.filterMap(
   ({ type }: any = {}) => type ?? IntervalType.WORK
@@ -33,11 +33,6 @@ const startTimeGuard = events.start.filterMap(
   ({ interval }: any = { interval: 0 }) => (interval > 0 ? interval : undefined)
 );
 const setTimeGuard = events.setTime.filter({ fn: (time) => time > 0 });
-
-export const $time = domain
-  .store(0)
-  .on(merge([setTimeGuard, startTimeGuard]), (_, time) => time)
-  .on(effects.tickEffect, (time) => time - 1);
 
 export const $countdownState = domain
   .store(CountdownState.INITIAL)
@@ -75,29 +70,22 @@ export const $currentInterval = domain
   .store<number>(0)
   .on(startTimeGuard, (_, time) => time);
 
-// tick when countdown starts
-sample({
-  source: merge([startTimeGuard, events.resume]),
-  filter: effects.tickEffect.pending.map((is) => !is),
-  fn: () => null,
-  target: effects.tickEffect,
+const clockIntervalIsRunning = sample({
+  source: events.clockInterval,
+  filter: $isRunning
 });
 
-const willTick = sample({
-  source: effects.tickEffect.done,
-  filter: combine(
-    $time,
-    $isRunning,
-    (time, isRunning) => time > 0 && isRunning
-  ),
-});
-
-// trigger tick after 1 sec is over if countdown is running and time is left
-sample({
-  source: willTick,
-  fn: () => null,
-  target: effects.tickEffect,
-});
+export const $time = domain
+  .store(0)
+  .on(merge([setTimeGuard, startTimeGuard]), (_, time) => time)
+  .on(clockIntervalIsRunning, (secLeft) => {
+    // TODO: правильнее было бы отнимать реально прошедшее время, но для этого
+    // кажется, что надо рефакторить и переходить на миллисекунды
+    // сейчас для простоты забил
+    // msSinceLastTick - второй параметр этой функции, кототрый сейчас не указан
+    // return secLeft - msSinceLastTick / 1000
+    return secLeft - 1
+  });
 
 const timeZero = sample({
   source: $time,

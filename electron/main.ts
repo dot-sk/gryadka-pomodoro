@@ -3,7 +3,7 @@ import * as path from "path";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
-import { IpcChannels } from "../src/shared/ipc/constants";
+import { IpcChannels } from "../src/shared/ipcWorld/constants";
 import { formatTime } from "../src/shared/utils";
 
 let window: BrowserWindow | null;
@@ -19,7 +19,7 @@ function createWindow() {
     transparent: true,
     webPreferences: {
       // contextIsolation: false,
-      backgroundThrottling: false,
+      backgroundThrottling: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
@@ -126,6 +126,19 @@ app.whenReady().then(() => {
       tray.setImage(image.resize({ width: width / 2, height: height / 2 }));
     }
   );
+
+  /**
+   * Тикаем в процессе электрона,
+   * чтобы выставить "backgroundThrottling: true" у окна,
+   * чтобы сэкономить cpu
+   */
+  let prevTime = Date.now()
+  setInterval(() => {
+    const now = Date.now()
+    const msSinceLastTick = now - prevTime
+    prevTime = now
+    window?.webContents.send(IpcChannels['clock:tick'], msSinceLastTick)
+  }, 1000)
 
   ipcMain.on(IpcChannels["countdown-tick"], (event, seconds: string) => {
     const secNumber = parseInt(seconds, 10);
