@@ -41,8 +41,8 @@
     "autoprefixer": "^10.4.7",
     "babel-jest": "^28.1.1",
     "concurrently": "^7.2.1",
-    "electron": "^19.0.4",
-    "electron-builder": "^23.0.3",
+    "electron": "^25.2.0",
+    "electron-builder": "^24.4.0",
     "electron-reload": "^2.0.0-alpha.1",
     "jest": "^28.1.1",
     "jest-environment-jsdom": "^28.1.1",
@@ -60,6 +60,16 @@
     ],
     "directories": {
       "buildResources": "assets"
+    },
+    "mac": {
+      "identity": null,
+      "target": {
+        "target": "default",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
     }
   },
   "browserslist": {
