@@ -23,7 +23,7 @@ export const events = {
 };
 
 ipcWorld.on(IpcChannels["clock:tick"], (_, msSinceLastTick) => {
-  events.clockInterval(msSinceLastTick)
+  events.clockInterval(Number(msSinceLastTick))
 })
 
 const startTypeGuard = events.start.filterMap(
