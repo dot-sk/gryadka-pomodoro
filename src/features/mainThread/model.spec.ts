@@ -11,6 +11,7 @@ describe("features/mainThread/model", () => {
     const spy = jest.spyOn(ipcWorld, "send");
 
     const scope = fork(countdownModel.domain, {
+      // @ts-ignore
       handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
     });
 

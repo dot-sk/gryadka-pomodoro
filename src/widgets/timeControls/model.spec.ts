@@ -11,6 +11,7 @@ const START_PARAMS = { interval: 10, type: IntervalType.WORK };
 describe("features/timeControls/model", () => {
   it("должен переключать между play/pause", async () => {
     const scope = fork(countdownModel.domain, {
+      // @ts-ignore
       handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
     });
 

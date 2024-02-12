@@ -23,6 +23,7 @@ const getTodayNoonMs = () => {
 describe("features/stats/model", () => {
   it("должен обратотать старт интервала", async () => {
     const statsScope = fork(domain, {
+      // @ts-ignore
       handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
     });
 
@@ -65,6 +66,7 @@ describe("features/stats/model", () => {
 
   it('должен перейти в начальное состояние после события "reset"', async () => {
     const statsScope = fork(domain, {
+      // @ts-ignore
       handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
     });
 
