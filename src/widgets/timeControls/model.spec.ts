@@ -25,27 +25,27 @@ describe("features/timeControls/model", () => {
   it("должен переключать между play/pause", async () => {
     const scope = fork(countdownModel.domain);
 
-    // start
+    // start: time=9 (interval-1)
     await allSettled(events.togglePlay, { scope, params: START_PARAMS });
     advanceTime(2000);
     await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
-    expect(scope.getState(countdownModel.$time)).toBe(8);
+    expect(scope.getState(countdownModel.$time)).toBe(7); // 9 - 2
 
     // pause
     await allSettled(events.togglePlay, { scope, params: START_PARAMS });
     advanceTime(2000);
     await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
     // время не должно измениться
-    expect(scope.getState(countdownModel.$time)).toBe(8);
+    expect(scope.getState(countdownModel.$time)).toBe(7);
 
     // resume
     await allSettled(events.togglePlay, { scope, params: START_PARAMS });
     advanceTime(2000);
     await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
-    expect(scope.getState(countdownModel.$time)).toBe(6);
+    expect(scope.getState(countdownModel.$time)).toBe(5); // 7 - 2
 
     // pause
     await allSettled(events.togglePlay, { scope, params: START_PARAMS });
-    expect(scope.getState(countdownModel.$time)).toBe(6);
+    expect(scope.getState(countdownModel.$time)).toBe(5);
   });
 });

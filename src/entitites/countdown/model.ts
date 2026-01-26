@@ -79,7 +79,7 @@ const $startedAt = domain
 // Сколько секунд было на момент старта текущего отрезка
 const $effectiveInterval = domain
   .store<number>(0)
-  .on(startTimeGuard, (_, interval) => interval)
+  .on(startTimeGuard, (_, interval) => interval - 1) // -1: синхронно с $time
   .reset(events.reset);
 
 // При resume: обновляем startedAt
@@ -96,7 +96,8 @@ const clockIntervalIsRunning = sample({
 
 export const $time = domain
   .store(0)
-  .on(merge([setTimeGuard, startTimeGuard]), (_, time) => time);
+  .on(setTimeGuard, (_, time) => time)
+  .on(startTimeGuard, (_, interval) => interval - 1); // -1: первая секунда уже началась
 
 // Вычисляем время из реального timestamp — нет дрифта
 sample({
@@ -104,7 +105,7 @@ sample({
   source: combine($startedAt, $effectiveInterval),
   fn: ([startedAt, effectiveInterval]) => {
     const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
-    return Math.max(0, effectiveInterval - elapsedSeconds);
+    return effectiveInterval - elapsedSeconds; // может быть < 0, это триггерит завершение
   },
   target: $time,
 });
@@ -116,9 +117,9 @@ sample({
   target: $effectiveInterval,
 });
 
-const timeZero = sample({
+const timeNegative = sample({
   source: $time,
-  filter: (time) => time === 0,
+  filter: (time) => time < 0, // завершаем когда время ушло в минус (0 показался полную секунду)
 });
 
 // reset countdown when timer reaches 0 or when it is stopped from outside
@@ -126,7 +127,7 @@ forward({
   from: sample({
     source: merge([
       // zero time event
-      timeZero,
+      timeNegative,
       stopGuard,
     ]),
     fn: () => null,
@@ -135,9 +136,10 @@ forward({
 });
 
 sample({
-  clock: merge([stopAndSaveGuard, timeZero]),
+  clock: merge([stopAndSaveGuard, timeNegative]),
   source: combine($time, $currentInterval).map(([time, currentInterval]) => ({
-    elapsedTime: currentInterval - time,
+    // clamp time к 0, т.к. при завершении time может быть < 0
+    elapsedTime: currentInterval - Math.max(0, time),
   })),
   target: events.end,
 });

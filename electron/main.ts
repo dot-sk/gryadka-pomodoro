@@ -34,26 +34,13 @@ function createWindow() {
   if (app.isPackaged) {
     window.loadURL(`file://${__dirname}/../index.html`);
   } else {
-    window.loadURL("http://localhost:3000/index.html");
-
-    // Hot Reloading on 'node_modules/.bin/electronPath'
-    require("electron-reload")(__dirname, {
-      electron: path.join(
-        __dirname,
-        "..",
-        "..",
-        "node_modules",
-        ".bin",
-        "electron" + (process.platform === "win32" ? ".cmd" : "")
-      ),
-      forceHardReset: true,
-      hardResetMethod: "exit",
-    });
+    // vite-plugin-electron передаёт URL через env
+    window.loadURL(process.env.VITE_DEV_SERVER_URL || "http://localhost:5173");
   }
 }
 
 app.whenReady().then(() => {
-  app.dock?.hide();
+  //app.dock?.hide();
 
   // DevTools only in development
   if (!app.isPackaged) {
@@ -77,8 +64,12 @@ app.whenReady().then(() => {
     }
   });
 
-  const trayIcon = nativeImage.createEmpty();
-  const tray = new Tray(trayIcon);
+  // Создаём placeholder иконку 16x16 (пустая иконка может не работать в dev)
+  const placeholderIcon = nativeImage.createFromDataURL(
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAADklEQVQ4jWNgGAWjAAcAAAQQAAHBu5uzAAAAAElFTkSuQmCC"
+  );
+  placeholderIcon.setTemplateImage(true);
+  const tray = new Tray(placeholderIcon);
 
   const contextMenu = Menu.buildFromTemplate([
     { label: "Выйти", type: "normal", click: () => app.quit() },
@@ -123,7 +114,7 @@ app.whenReady().then(() => {
       const base64Data = dataURL.replace(/^data:image\/png;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
 
-      // scaleFactor: 2 говорит Electron что это Retina-картинка (100x36 px = 50x18 точек)
+      // scaleFactor: 2 говорит Electron что это Retina-картинка
       const image = nativeImage.createFromBuffer(buffer, { scaleFactor: 2 });
 
       // Template image автоматически адаптируется к теме системного трея на macOS
