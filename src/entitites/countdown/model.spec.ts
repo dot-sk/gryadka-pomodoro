@@ -1,127 +1,116 @@
 import { allSettled, fork } from "effector";
 import { $countdownState, $time, domain, events } from "./model";
 import { CountdownState, IntervalType } from "./constants";
-import { wait } from "../../shared/utils";
-
-jest.useRealTimers();
 
 const SECONDS = 10;
 const START_PARAMS = { interval: SECONDS, type: IntervalType.WORK };
 
-// TODO: Переписать тесты на таймеры потому, что
-// теперь часы идут в electron процессе
-describe.skip("entity/countdown/model", () => {
-  // it("должен =0 секунд при старте", () => {
-  //   const scope = fork(domain);
-  //   expect(scope.getState($time)).toBe(0);
-  // });
+describe("entity/countdown/model", () => {
+  let dateNowSpy: jest.SpyInstance;
+  let currentTime: number;
 
-  // it("должен иметь состояние INITIAL при старте", () => {
-  //   const scope = fork(domain);
-  //   expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
-  // });
+  beforeEach(() => {
+    currentTime = 1000000;
+    dateNowSpy = jest.spyOn(Date, "now").mockImplementation(() => currentTime);
+  });
 
-  // it("должен протикать согласно количеству секунд", async () => {
-  //   const scope = fork(domain);
-  //   const allowedDelta = 100;
-  //   const threeSecMs = 3 * 1000;
+  afterEach(() => {
+    dateNowSpy.mockRestore();
+  });
 
-  //   const start = Date.now();
-  //   await allSettled(events.start, {
-  //     scope,
-  //     params: { interval: 3, type: IntervalType.WORK },
-  //   });
-  //   const end = Date.now();
-  //   const diff = end - start;
+  const advanceTime = (ms: number) => {
+    currentTime += ms;
+  };
 
-  //   expect(diff).not.toBeLessThan(threeSecMs - allowedDelta);
-  //   expect(diff).not.toBeGreaterThan(threeSecMs + allowedDelta);
-  // });
+  it("должен =0 секунд при старте", () => {
+    const scope = fork(domain);
+    expect(scope.getState($time)).toBe(0);
+  });
 
-  // it("должен остановиться при паузе", async () => {
-  //   const fn = jest.fn();
-  //   const scope = fork(domain, {
-  //     handlers: [
-  //       [
-  //         effects.tickEffect,
-  //         () => {
-  //           fn();
-  //           return wait(100);
-  //         },
-  //       ],
-  //     ],
-  //   });
+  it("должен иметь состояние INITIAL при старте", () => {
+    const scope = fork(domain);
+    expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
+  });
 
-  //   allSettled(events.start, { scope, params: START_PARAMS });
-  //   await wait(200);
-  //   await allSettled(events.pause, { scope });
-  //   await wait(200);
+  it("должен уменьшать время на каждый тик", async () => {
+    const scope = fork(domain);
 
-  //   expect(scope.getState($time)).toBe(8);
-  //   expect(fn).toHaveBeenCalledTimes(2);
-  // });
+    await allSettled(events.start, { scope, params: START_PARAMS });
+    expect(scope.getState($time)).toBe(10);
 
-  // it("должен продолжить с того же места после паузы", async () => {
-  //   const scope = fork(domain, {
-  //     handlers: [[effects.tickEffect, () => wait(110)]],
-  //   });
+    advanceTime(1000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState($time)).toBe(9);
 
-  //   allSettled(events.start, { scope, params: START_PARAMS });
-  //   await wait(200);
-  //   await allSettled(events.pause, { scope });
-  //   await wait(200);
-  //   allSettled(events.resume, { scope });
-  //   await wait(200);
-  //   await allSettled(events.pause, { scope });
+    advanceTime(1000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState($time)).toBe(8);
+  });
 
-  //   expect(scope.getState($time)).toBe(6);
-  // });
+  it("должен остановиться при паузе", async () => {
+    const scope = fork(domain);
 
-  // it("должен сбросить состояние в INITIAL, когда дотикал до 0", async () => {
-  //   const scope = fork(domain, {
-  //     handlers: [[effects.tickEffect, () => null]],
-  //   });
+    await allSettled(events.start, { scope, params: START_PARAMS });
 
-  //   await allSettled(events.start, { scope, params: START_PARAMS });
+    advanceTime(2000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState($time)).toBe(8);
 
-  //   expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
-  // });
+    await allSettled(events.pause, { scope });
 
-  // it("должен вернуть таймер в значение интервала, когда дотикал до 0", async () => {
-  //   const scope = fork(domain, {
-  //     handlers: [[effects.tickEffect, () => null]],
-  //   });
+    // Время идёт, но тики не обрабатываются (isRunning = false)
+    advanceTime(5000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
 
-  //   await allSettled(events.start, { scope, params: START_PARAMS });
+    // Время должно остаться тем же
+    expect(scope.getState($time)).toBe(8);
+  });
 
-  //   expect(scope.getState($time)).toBe(10);
-  // });
+  it("должен продолжить с того же места после паузы", async () => {
+    const scope = fork(domain);
 
-  // it("должен сбросить состояние в INITIAL при стопе", async () => {
-  //   const scope = fork(domain, {
-  //     handlers: [[effects.tickEffect, () => wait(100)]],
-  //   });
+    await allSettled(events.start, { scope, params: START_PARAMS });
 
-  //   allSettled(events.start, { scope, params: START_PARAMS });
-  //   await wait(200);
-  //   await allSettled(events.stop, { scope, params: { save: false } });
+    advanceTime(2000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState($time)).toBe(8);
 
-  //   expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
-  // });
+    await allSettled(events.pause, { scope });
+    advanceTime(5000); // время идёт во время паузы
 
-  // it("дожен вызвать событие end при стопе", async () => {
-  //   const fn = jest.fn();
-  //   events.end.watch(fn);
-  //   const scope = fork(domain, {
-  //     handlers: [[effects.tickEffect, () => wait(100)]],
-  //   });
+    await allSettled(events.resume, { scope });
+    // После resume startedAt обновляется на текущее время
 
-  //   allSettled(events.start, { scope, params: START_PARAMS });
-  //   await wait(300);
-  //   await allSettled(events.stop, { scope, params: { save: true } });
+    advanceTime(2000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
 
-  //   expect(fn).toHaveBeenCalledWith({
-  //     elapsedTime: 3,
-  //   });
-  // });
+    // 8 - 2 = 6
+    expect(scope.getState($time)).toBe(6);
+  });
+
+  it("должен сбросить состояние в INITIAL, когда дотикал до 0", async () => {
+    const scope = fork(domain);
+
+    await allSettled(events.start, { scope, params: { interval: 2, type: IntervalType.WORK } });
+
+    advanceTime(2000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+
+    expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
+  });
+
+  it("должен вернуть таймер в значение интервала после reset", async () => {
+    const scope = fork(domain);
+
+    await allSettled(events.start, { scope, params: START_PARAMS });
+
+    advanceTime(3000);
+    await allSettled(events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState($time)).toBe(7);
+
+    await allSettled(events.stop, { scope, params: { save: false } });
+
+    expect(scope.getState($time)).toBe(10);
+    expect(scope.getState($countdownState)).toBe(CountdownState.INITIAL);
+  });
 });

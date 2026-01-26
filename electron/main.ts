@@ -1,8 +1,5 @@
 import { app, BrowserWindow, ipcMain, Tray, nativeImage, Menu } from "electron";
 import * as path from "path";
-import installExtension, {
-  REACT_DEVELOPER_TOOLS,
-} from "electron-devtools-installer";
 import { IpcChannels } from "../src/shared/ipcWorld/constants";
 import { formatTime } from "../src/shared/utils";
 
@@ -55,13 +52,16 @@ function createWindow() {
   }
 }
 
-app.dock.hide();
-
 app.whenReady().then(() => {
-  // DevTools
-  installExtension(REACT_DEVELOPER_TOOLS)
-    .then((name) => console.log(`Added Extension:  ${name}`))
-    .catch((err) => console.log("An error occurred: ", err));
+  app.dock?.hide();
+
+  // DevTools only in development
+  if (!app.isPackaged) {
+    const { default: installExtension, REACT_DEVELOPER_TOOLS } = require("electron-devtools-installer");
+    installExtension(REACT_DEVELOPER_TOOLS)
+      .then((name: string) => console.log(`Added Extension:  ${name}`))
+      .catch((err: Error) => console.log("An error occurred: ", err));
+  }
 
   createWindow();
 
@@ -119,11 +119,18 @@ app.whenReady().then(() => {
   ipcMain.on(
     IpcChannels["countdown-tick-as-image"],
     (event, dataURL: string) => {
-      const image = nativeImage.createFromDataURL(dataURL);
-      const { width, height } = image.getSize();
+      // Извлекаем base64 данные из dataURL и создаём buffer
+      const base64Data = dataURL.replace(/^data:image\/png;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // scaleFactor: 2 говорит Electron что это Retina-картинка (100x36 px = 50x18 точек)
+      const image = nativeImage.createFromBuffer(buffer, { scaleFactor: 2 });
+
+      // Template image автоматически адаптируется к теме системного трея на macOS
+      image.setTemplateImage(true);
 
       tray.setTitle("");
-      tray.setImage(image.resize({ width: width / 2, height: height / 2 }));
+      tray.setImage(image);
     }
   );
 

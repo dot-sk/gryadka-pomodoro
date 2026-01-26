@@ -1,33 +1,51 @@
 import { allSettled, fork } from "effector";
 import { countdownModel } from "../../entitites/countdown";
 import { events } from "./model";
-import { wait } from "../../shared/utils";
 import { IntervalType } from "../../entitites/countdown/constants";
-
-jest.useRealTimers();
 
 const START_PARAMS = { interval: 10, type: IntervalType.WORK };
 
 describe("features/timeControls/model", () => {
+  let dateNowSpy: jest.SpyInstance;
+  let currentTime: number;
+
+  beforeEach(() => {
+    currentTime = 1000000;
+    dateNowSpy = jest.spyOn(Date, "now").mockImplementation(() => currentTime);
+  });
+
+  afterEach(() => {
+    dateNowSpy.mockRestore();
+  });
+
+  const advanceTime = (ms: number) => {
+    currentTime += ms;
+  };
+
   it("должен переключать между play/pause", async () => {
-    const scope = fork(countdownModel.domain, {
-      // @ts-ignore
-      handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
-    });
+    const scope = fork(countdownModel.domain);
 
     // start
-    allSettled(events.togglePlay, { scope, params: START_PARAMS });
-    await wait(200);
-    // pause
-    allSettled(events.togglePlay, { scope, params: START_PARAMS });
-    await wait(200);
-    // start
-    allSettled(events.togglePlay, { scope, params: START_PARAMS });
-    await wait(200);
-    // pause
-    allSettled(events.togglePlay, { scope, params: START_PARAMS });
-    await wait(200);
+    await allSettled(events.togglePlay, { scope, params: START_PARAMS });
+    advanceTime(2000);
+    await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState(countdownModel.$time)).toBe(8);
 
+    // pause
+    await allSettled(events.togglePlay, { scope, params: START_PARAMS });
+    advanceTime(2000);
+    await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+    // время не должно измениться
+    expect(scope.getState(countdownModel.$time)).toBe(8);
+
+    // resume
+    await allSettled(events.togglePlay, { scope, params: START_PARAMS });
+    advanceTime(2000);
+    await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+    expect(scope.getState(countdownModel.$time)).toBe(6);
+
+    // pause
+    await allSettled(events.togglePlay, { scope, params: START_PARAMS });
     expect(scope.getState(countdownModel.$time)).toBe(6);
   });
 });

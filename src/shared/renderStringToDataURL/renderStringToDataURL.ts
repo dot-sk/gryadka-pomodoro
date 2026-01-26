@@ -1,18 +1,11 @@
-const getColor = (theme: 'dark' | 'light') => {
-  if (theme === 'dark') {
-    return 'rgba(255, 255, 255, 0.85)';
-  }
-
-  return 'rgba(0, 0, 0, 0.85)';
-}
-
 /**
  * Function receives a string of text and returns a data URL of the rendered text.
- * @param canvas
+ * Рисует залитый скруглённый прямоугольник с вырезанным (прозрачным) текстом.
+ * Для template image на macOS: фон адаптируется к теме, текст показывает цвет трея.
  */
 export function renderStringToDataURL(
   text: string,
-  theme: 'dark' | 'light' = 'dark',
+  _theme: 'dark' | 'light' = 'dark',
   canvas?: HTMLCanvasElement
 ): string {
   const canvasRender = canvas || document.createElement("canvas");
@@ -26,50 +19,44 @@ export function renderStringToDataURL(
     return "";
   }
 
-  const color = getColor(theme);
+  // Очищаем canvas
+  ctx.clearRect(0, 0, canvasRender.width, canvasRender.height);
 
+  // Рисуем залитый скруглённый прямоугольник
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  roundRectFill(ctx, 2, 2, canvasRender.width - 4, canvasRender.height - 4, 8);
+
+  // Вырезаем текст (делаем прозрачным)
+  ctx.globalCompositeOperation = 'destination-out';
   ctx.font = '24px "IBM Plex Mono"';
   ctx.textAlign = "center";
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-
-  roundRect(
-    ctx,
-    ctx.lineWidth,
-    ctx.lineWidth,
-    canvasRender.width - ctx.lineWidth * 2,
-    canvasRender.height - ctx.lineWidth * 2,
-    8
-  );
-
-  // draw text
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
   ctx.fillText(text, canvasRender.width * 0.5, 27);
 
-  const dataURL = canvasRender.toDataURL("image/png");
+  // Возвращаем режим по умолчанию
+  ctx.globalCompositeOperation = 'source-over';
 
-  return dataURL;
+  return canvasRender.toDataURL("image/png");
 }
 
-function roundRect(
-  context: CanvasRenderingContext2D,
+function roundRectFill(
+  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
   h: number,
   radius: number
 ) {
-  var r = x + w;
-  var b = y + h;
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.lineTo(r - radius, y);
-  context.quadraticCurveTo(r, y, r, y + radius);
-  context.lineTo(r, y + h - radius);
-  context.quadraticCurveTo(r, b, r - radius, b);
-  context.lineTo(x + radius, b);
-  context.quadraticCurveTo(x, b, x, b - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
 }

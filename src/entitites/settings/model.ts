@@ -9,7 +9,7 @@ export const events = {
 
 const connectSettingsLocalStorage = connectLocalStorage("$settings");
 
-const EIGHT_HOURS_SECONDS = 8 * 60 * 60 * 1000;
+const EIGHT_HOURS_SECONDS = 8 * 60 * 60;
 
 const SETTINGS_REVISION = 1;
 

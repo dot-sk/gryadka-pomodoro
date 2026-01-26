@@ -70,6 +70,25 @@ export const $currentInterval = domain
   .store<number>(0)
   .on(startTimeGuard, (_, time) => time);
 
+// Timestamp когда стартовали/возобновили текущий отрезок
+const $startedAt = domain
+  .store<number>(0)
+  .on(startTimeGuard, () => Date.now())
+  .reset(events.reset);
+
+// Сколько секунд было на момент старта текущего отрезка
+const $effectiveInterval = domain
+  .store<number>(0)
+  .on(startTimeGuard, (_, interval) => interval)
+  .reset(events.reset);
+
+// При resume: обновляем startedAt
+sample({
+  clock: events.resume,
+  fn: () => Date.now(),
+  target: $startedAt,
+});
+
 const clockIntervalIsRunning = sample({
   source: events.clockInterval,
   filter: $isRunning
@@ -77,15 +96,25 @@ const clockIntervalIsRunning = sample({
 
 export const $time = domain
   .store(0)
-  .on(merge([setTimeGuard, startTimeGuard]), (_, time) => time)
-  .on(clockIntervalIsRunning, (secLeft) => {
-    // TODO: правильнее было бы отнимать реально прошедшее время, но для этого
-    // кажется, что надо рефакторить и переходить на миллисекунды
-    // сейчас для простоты забил
-    // msSinceLastTick - второй параметр этой функции, кототрый сейчас не указан
-    // return secLeft - msSinceLastTick / 1000
-    return secLeft - 1
-  });
+  .on(merge([setTimeGuard, startTimeGuard]), (_, time) => time);
+
+// Вычисляем время из реального timestamp — нет дрифта
+sample({
+  clock: clockIntervalIsRunning,
+  source: combine($startedAt, $effectiveInterval),
+  fn: ([startedAt, effectiveInterval]) => {
+    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+    return Math.max(0, effectiveInterval - elapsedSeconds);
+  },
+  target: $time,
+});
+
+// $time на момент паузы становится новым effectiveInterval при resume
+sample({
+  clock: events.pause,
+  source: $time,
+  target: $effectiveInterval,
+});
 
 const timeZero = sample({
   source: $time,

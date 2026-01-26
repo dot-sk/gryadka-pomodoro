@@ -28,9 +28,11 @@ const willRender = sample({
   fn: () => countdownModel.$time.getState(),
 });
 
+const trayCanvas = document.createElement("canvas");
+
 willRender.watch((time) => {
   ipcWorld.send(
     IpcChannels["countdown-tick-as-image"],
-    renderStringToDataURL(formatSeconds(time), 'light')
+    renderStringToDataURL(formatSeconds(time), 'light', trayCanvas)
   );
 });

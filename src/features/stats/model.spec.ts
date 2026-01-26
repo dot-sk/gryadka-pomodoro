@@ -8,10 +8,7 @@ import {
   $totalToday,
 } from "./model";
 import { IntervalType } from "../../entitites/countdown/constants";
-import { wait } from "../../shared/utils";
 import { StatEntryOwnTypes } from "./constants";
-
-jest.useRealTimers();
 
 // функция возвращает дату сегодня в 12:00
 const getTodayNoonMs = () => {
@@ -21,11 +18,24 @@ const getTodayNoonMs = () => {
 };
 
 describe("features/stats/model", () => {
+  let dateNowSpy: jest.SpyInstance;
+  let currentTime: number;
+
+  beforeEach(() => {
+    currentTime = getTodayNoonMs();
+    dateNowSpy = jest.spyOn(Date, "now").mockImplementation(() => currentTime);
+  });
+
+  afterEach(() => {
+    dateNowSpy.mockRestore();
+  });
+
+  const advanceTime = (ms: number) => {
+    currentTime += ms;
+  };
+
   it("должен обратотать старт интервала", async () => {
-    const statsScope = fork(domain, {
-      // @ts-ignore
-      handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
-    });
+    const statsScope = fork(domain);
 
     await allSettled(countdownModel.events.start, {
       scope: statsScope,
@@ -33,6 +43,13 @@ describe("features/stats/model", () => {
         interval: 2,
         type: IntervalType.WORK,
       },
+    });
+
+    // Симулируем тики до конца интервала
+    advanceTime(2000);
+    await allSettled(countdownModel.events.clockInterval, {
+      scope: statsScope,
+      params: 1000,
     });
 
     const firstEntry = statsScope.getState($statEntriesHistory)[0];
@@ -44,31 +61,8 @@ describe("features/stats/model", () => {
     });
   });
 
-  it.skip("должен сохранить правильные таймстемпы", async () => {
-    const statsScope = fork(domain);
-    const allowedDelta = 100;
-    const threeSecMs = 3 * 1000;
-
-    await allSettled(countdownModel.events.start, {
-      scope: statsScope,
-      params: {
-        interval: 3,
-        type: IntervalType.WORK,
-      },
-    });
-
-    const firstEntry = statsScope.getState($statEntriesHistory)[0];
-    const diff = firstEntry.end - firstEntry.start;
-
-    expect(diff).not.toBeLessThan(threeSecMs - allowedDelta);
-    expect(diff).not.toBeGreaterThan(threeSecMs + allowedDelta);
-  });
-
   it('должен перейти в начальное состояние после события "reset"', async () => {
-    const statsScope = fork(domain, {
-      // @ts-ignore
-      handlers: [[countdownModel.effects.tickEffect, () => wait(100)]],
-    });
+    const statsScope = fork(domain);
 
     await allSettled(countdownModel.events.start, {
       scope: statsScope,
@@ -76,6 +70,13 @@ describe("features/stats/model", () => {
         interval: 2,
         type: IntervalType.WORK,
       },
+    });
+
+    // Симулируем тики до конца интервала
+    advanceTime(2000);
+    await allSettled(countdownModel.events.clockInterval, {
+      scope: statsScope,
+      params: 1000,
     });
 
     expect(statsScope.getState($statEntry)).toMatchObject({
@@ -132,6 +133,4 @@ describe("features/stats/model", () => {
 
     expect(statsScope.getState($totalToday)).toBe(6);
   });
-
-  it('должен вернуть самую свежую запись типа "work"', async () => {});
 });
