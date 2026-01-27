@@ -8,3 +8,8 @@ contextBridge.exposeInMainWorld('ipcWorld', {
     ipcRenderer.on(channel, listener)
   }
 });
+
+contextBridge.exposeInMainWorld('electronStore', {
+  get: (key: string) => ipcRenderer.invoke('store:get', key),
+  set: (key: string, value: any) => ipcRenderer.invoke('store:set', key, value),
+});

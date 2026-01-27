@@ -1,5 +1,4 @@
 import { createDomain, forward, sample } from "effector";
-import connectLocalStorage from "effector-localstorage";
 import { countdownModel } from "../../entitites/countdown";
 import { StatEntry } from "./typings";
 import { StatEntryOwnTypes } from "./constants";
@@ -7,10 +6,14 @@ import { IntervalType } from "../../entitites/countdown/constants";
 import {
   isBetweenTodayAndTomorrow,
   mapStatEntriesByDate,
-  mapStatEntriesByHours,
-  secToMinutes,
   sumStatEntriesTime,
+  generateHeatmapDays,
+  fillHeatmapWithStats,
 } from "./utils";
+import {
+  connectElectronStore,
+  loadFromElectronStore,
+} from "../../shared/lib/effector-electron-store";
 
 export const domain = createDomain();
 
@@ -26,16 +29,18 @@ export const events = {
   push: domain.event<StatEntry>(),
   remove: domain.event<StatEntry>(),
   reset: domain.event<unknown>(),
+  loadHistory: domain.event<StatEntry[]>(),
 };
 
-const statEntriesLocalStorage = connectLocalStorage("$statEntriesHistory");
+const statEntriesStore = connectElectronStore<StatEntry[]>("statEntriesHistory");
 
 export const $statEntry = domain
   .createStore<StatEntry>(emptyEntry)
   .on(events.reset, () => emptyEntry);
 
 export const $statEntriesHistory = domain
-  .createStore<StatEntry[]>(statEntriesLocalStorage.init([]))
+  .createStore<StatEntry[]>(statEntriesStore.init([]))
+  .on(events.loadHistory, (_, entries) => entries)
   .on(events.push, (entries, entry) => [...entries, entry])
   .on(events.remove, (entries, entry) => {
     const index = entries.findIndex((e) => e === entry);
@@ -52,28 +57,16 @@ export const $statEntriesHistoryAsc = $statEntriesHistory.map((entries) =>
 export const $statEntriesHistoryAscByDate =
   $statEntriesHistoryAsc.map(mapStatEntriesByDate);
 
-export const $statEntriesHistoryHoursSumByDateAsc =
-  $statEntriesHistoryAscByDate.map((entries) =>
-    Object.entries(entries).map(([date, entries]) => {
-      const hours = mapStatEntriesByHours(entries);
-
-      const sumByHours = Object.entries(hours).map((value) => {
-        return [value[0], sumStatEntriesTime(value[1])] as const;
-      });
-
-      return [date, sumByHours] as const;
-    }, {})
-  );
+// Селектор для тепловой карты (последние 26 недель, как у GitHub)
+export const $statEntriesByDayForHeatmap = $statEntriesHistory.map(
+  (entries) => {
+    const heatmapDays = generateHeatmapDays(26);
+    return fillHeatmapWithStats(heatmapDays, entries);
+  }
+);
 
 export const $todayEntries = $statEntriesHistory.map((entries) =>
   entries.filter((entry) => isBetweenTodayAndTomorrow(entry.end))
-);
-
-export const $todayEntriesByHours = $todayEntries.map(mapStatEntriesByHours);
-export const $todayEntriesByHoursSum = $todayEntriesByHours.map((entries) =>
-  Object.entries(entries).map((value) => {
-    return [value[0], sumStatEntriesTime(value[1])] as const;
-  })
 );
 
 export const $totalToday = $todayEntries.map(sumStatEntriesTime);
@@ -127,4 +120,10 @@ forward({
   to: [events.push, events.reset],
 });
 
-$statEntriesHistory.watch(statEntriesLocalStorage);
+// Подписка на изменения для сохранения в electron-store
+statEntriesStore.subscribe($statEntriesHistory);
+
+// Загрузка данных при старте
+loadFromElectronStore("statEntriesHistory", []).then((data) => {
+  events.loadHistory(data);
+});

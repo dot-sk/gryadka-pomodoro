@@ -6,9 +6,11 @@ import {
   domain,
   events,
   $totalToday,
+  $statEntriesByDayForHeatmap,
 } from "./model";
 import { IntervalType } from "../../entitites/countdown/constants";
 import { StatEntryOwnTypes } from "./constants";
+import { formatSecondsDate } from "../../shared/utils";
 
 // функция возвращает дату сегодня в 12:00
 const getTodayNoonMs = () => {
@@ -132,5 +134,43 @@ describe("features/stats/model", () => {
     });
 
     expect(statsScope.getState($totalToday)).toBe(6);
+  });
+
+  it("должен генерировать данные для тепловой карты", async () => {
+    const todayNoonMs = getTodayNoonMs();
+    const statsScope = fork(domain, {
+      values: [
+        [
+          $statEntriesHistory,
+          [
+            {
+              start: todayNoonMs,
+              end: todayNoonMs,
+              time: 3600, // 1 час в секундах
+              type: IntervalType.WORK,
+              interval: 3600,
+            },
+          ],
+        ],
+      ],
+    });
+
+    const heatmapData = statsScope.getState($statEntriesByDayForHeatmap);
+
+    // Проверяем, что данные генерируются (26 недель * 7 дней = 182 дня)
+    expect(heatmapData).toHaveLength(182);
+
+    // Проверяем, что для сегодняшнего дня есть запись с данными
+    const todayStr = formatSecondsDate(todayNoonMs / 1000);
+    const todayData = heatmapData.find((day) => day.dateStr === todayStr);
+
+    expect(todayData).toBeDefined();
+    expect(todayData?.totalSeconds).toBe(3600);
+
+    // Проверяем, что другие дни имеют totalSeconds = 0
+    const daysWithoutData = heatmapData.filter(
+      (day) => day.dateStr !== todayStr
+    );
+    expect(daysWithoutData.every((day) => day.totalSeconds === 0)).toBe(true);
   });
 });

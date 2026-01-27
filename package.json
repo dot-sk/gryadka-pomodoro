@@ -20,8 +20,8 @@
     "@tinkoff/utils": "^2.2.1",
     "antd": "^4.21.0",
     "effector": "^22.3.0",
-    "effector-localstorage": "^0.5.3",
     "effector-react": "^22.0.6",
+    "electron-store": "^11.0.2",
     "react": "^18.1.0",
     "react-dom": "^18.1.0"
   },

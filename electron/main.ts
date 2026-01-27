@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Tray, nativeImage, Menu } from "electron";
 import * as path from "path";
 import { IpcChannels } from "../src/shared/ipcWorld/constants";
 import { formatTime } from "../src/shared/utils";
+import { store } from "./store";
 
 let window: BrowserWindow | null;
 
@@ -40,7 +41,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  //app.dock?.hide();
+  app.dock?.hide();
 
   // DevTools only in development
   if (!app.isPackaged) {
@@ -142,5 +143,14 @@ app.whenReady().then(() => {
     const secNumber = parseInt(seconds, 10);
 
     tray.setTitle(formatTime(secNumber));
+  });
+
+  // Electron-store IPC handlers
+  ipcMain.handle("store:get", (_, key: string) => {
+    return store.get(key);
+  });
+
+  ipcMain.handle("store:set", (_, key: string, value: any) => {
+    store.set(key, value);
   });
 });
