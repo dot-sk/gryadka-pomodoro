@@ -29,6 +29,7 @@ export default defineConfig({
               external: [
                 "electron",
                 "electron-devtools-installer",
+                "electron-liquid-glass",
               ],
             },
           },
