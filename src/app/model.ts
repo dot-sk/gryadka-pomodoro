@@ -1,6 +1,7 @@
 import { createDomain } from "effector";
 import { ipcWorld } from "../shared/ipcWorld/ipcWorld";
 import { IpcChannels } from "../shared/ipcWorld/constants";
+import { countdownModel } from "../entitites/countdown";
 
 export enum AppScreen {
   TIMER = "timer",
@@ -25,4 +26,8 @@ ipcWorld.on(IpcChannels["navigate-to-timer"], () => {
 
 ipcWorld.on(IpcChannels["navigate-to-stats"], () => {
   events.navigateToStats();
+});
+
+ipcWorld.on(IpcChannels["toggle-play-pause"], () => {
+  countdownModel.events.togglePlayPause();
 });

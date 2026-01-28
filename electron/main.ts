@@ -74,8 +74,28 @@ app.whenReady().then(() => {
 
   const contextMenu = Menu.buildFromTemplate([
     {
+      label: "Старт/Пауза",
+      type: "normal",
+      accelerator: "Space",
+      click: () => {
+        window?.webContents.send(IpcChannels["toggle-play-pause"]);
+        if (!window?.isVisible()) {
+          const bounds = tray.getBounds();
+          window?.setBounds({
+            x: bounds.x,
+            y: bounds.y + bounds.height,
+            width: window?.getBounds().width || 376,
+            height: window?.getBounds().height || 152,
+          });
+          window?.show();
+        }
+      }
+    },
+    { type: "separator" },
+    {
       label: "Таймер",
       type: "normal",
+      accelerator: "CommandOrControl+1",
       click: () => {
         window?.webContents.send(IpcChannels["navigate-to-timer"]);
         if (!window?.isVisible()) {
@@ -94,6 +114,7 @@ app.whenReady().then(() => {
     {
       label: "Статистика",
       type: "normal",
+      accelerator: "CommandOrControl+2",
       click: () => {
         window?.webContents.send(IpcChannels["navigate-to-stats"]);
         if (!window?.isVisible()) {

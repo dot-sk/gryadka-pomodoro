@@ -351,4 +351,86 @@ describe("entity/countdown/model", () => {
       expect(scope.getState($currentInterval)).toBe(intervalBefore);
     });
   });
+
+  describe("togglePlayPause", () => {
+    it("должен запускать таймер если он не запущен (isPaused=true, isRunning=false)", async () => {
+      const scope = fork();
+
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: { interval: 1500, type: IntervalType.WORK }
+      });
+
+      expect(scope.getState($isPaused)).toBe(true);
+      expect(scope.getState($isRunning)).toBe(false);
+
+      await allSettled(events.togglePlayPause, { scope });
+
+      expect(scope.getState($isPaused)).toBe(false);
+      expect(scope.getState($isRunning)).toBe(true);
+    });
+
+    it("должен ставить на паузу если таймер запущен (isRunning=true)", async () => {
+      const scope = fork();
+
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: { interval: 1500, type: IntervalType.WORK }
+      });
+
+      await allSettled(events.resume, { scope });
+      expect(scope.getState($isRunning)).toBe(true);
+
+      await allSettled(events.togglePlayPause, { scope });
+
+      expect(scope.getState($isPaused)).toBe(true);
+      expect(scope.getState($isRunning)).toBe(false);
+    });
+
+    it("должен возобновлять таймер если он на паузе после запуска", async () => {
+      const scope = fork();
+
+      await allSettled(events.start, {
+        scope,
+        params: { interval: 1500, type: IntervalType.WORK }
+      });
+
+      advanceTime(2000);
+      await allSettled(events.clockInterval, { scope, params: 1000 });
+
+      await allSettled(events.pause, { scope });
+      expect(scope.getState($isPaused)).toBe(true);
+      expect(scope.getState($isRunning)).toBe(false);
+
+      await allSettled(events.togglePlayPause, { scope });
+
+      expect(scope.getState($isPaused)).toBe(false);
+      expect(scope.getState($isRunning)).toBe(true);
+    });
+
+    it("должен работать как toggle: pause -> resume -> pause -> resume", async () => {
+      const scope = fork();
+
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: { interval: 1500, type: IntervalType.WORK }
+      });
+
+      // Первый toggle: start
+      await allSettled(events.togglePlayPause, { scope });
+      expect(scope.getState($isRunning)).toBe(true);
+
+      // Второй toggle: pause
+      await allSettled(events.togglePlayPause, { scope });
+      expect(scope.getState($isRunning)).toBe(false);
+
+      // Третий toggle: resume
+      await allSettled(events.togglePlayPause, { scope });
+      expect(scope.getState($isRunning)).toBe(true);
+
+      // Четвертый toggle: pause
+      await allSettled(events.togglePlayPause, { scope });
+      expect(scope.getState($isRunning)).toBe(false);
+    });
+  });
 });
