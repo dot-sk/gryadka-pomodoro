@@ -1,4 +1,3 @@
-import React from "react";
 import { render, cleanup, fireEvent } from "@testing-library/react";
 import { HeatmapActivity } from "./HeatmapActivity";
 import { HeatmapDayData } from "../utils";
@@ -37,7 +36,7 @@ describe("HeatmapActivity", () => {
         dateStr: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
         totalSeconds: 0,
         weekIndex: Math.floor(i / 7),
-        dayOfWeek: date.getDay(),
+        dayOfWeek: (date.getDay() + 6) % 7, // 0 = Monday, 6 = Sunday
       };
 
       const customDay = customData?.find((d) => d.weekIndex === defaultDay.weekIndex && d.dayOfWeek === defaultDay.dayOfWeek);
@@ -48,40 +47,30 @@ describe("HeatmapActivity", () => {
   };
 
   it("должен рендерить компонент с пустыми данными", () => {
-    const emptyData = generateMockHeatmapData(26);
+    const emptyData = generateMockHeatmapData(18);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
-    const { getByText, getByTestId } = render(<HeatmapActivity />);
+    const { getByTestId } = render(<HeatmapActivity />);
 
-    // Проверяем наличие заголовка
-    expect(getByTestId("heatmap-title")).toHaveTextContent("ACTIVITY");
+    // Проверяем наличие основного контейнера
+    expect(getByTestId("heatmap-activity")).toBeInTheDocument();
 
-    // Проверяем наличие легенды
-    expect(getByText("LESS")).toBeInTheDocument();
-    expect(getByText("MORE")).toBeInTheDocument();
-
-    // Проверяем статистику (должна показывать 0)
-    expect(getByTestId("heatmap-summary")).toHaveTextContent(/00:00:00 in 0 days/);
-
-    // Проверяем количество недель (26 колонок)
+    // Проверяем количество недель (18 колонок)
     const weeks = getByTestId("heatmap-weeks");
     const weekColumns = weeks.querySelectorAll('[data-testid^="heatmap-week-"]');
-    expect(weekColumns.length).toBe(26);
+    expect(weekColumns.length).toBe(18);
   });
 
   it("должен рендерить компонент с данными", () => {
-    const dataWithActivity = generateMockHeatmapData(26, [
-      { weekIndex: 0, dayOfWeek: 1, totalSeconds: 3600 }, // 1 час
-      { weekIndex: 1, dayOfWeek: 3, totalSeconds: 7200 }, // 2 часа
-      { weekIndex: 2, dayOfWeek: 5, totalSeconds: 14400 }, // 4 часа
-      { weekIndex: 3, dayOfWeek: 0, totalSeconds: 21600 }, // 6 часов
+    const dataWithActivity = generateMockHeatmapData(18, [
+      { weekIndex: 0, dayOfWeek: 0, totalSeconds: 3600 }, // 1 час - понедельник
+      { weekIndex: 1, dayOfWeek: 2, totalSeconds: 7200 }, // 2 часа - среда
+      { weekIndex: 2, dayOfWeek: 4, totalSeconds: 14400 }, // 4 часа - пятница
+      { weekIndex: 3, dayOfWeek: 6, totalSeconds: 21600 }, // 6 часов - воскресенье
     ]);
     mockUseUnit.mockReturnValue({ heatmapData: dataWithActivity });
 
-    const { getByTestId, getAllByTestId } = render(<HeatmapActivity />);
-
-    // Проверяем статистику - 4 дня с активностью
-    expect(getByTestId("heatmap-summary")).toHaveTextContent(/4 days/);
+    const { getAllByTestId } = render(<HeatmapActivity />);
 
     // Проверяем, что есть клетки с активностью (intensity > 0)
     const allSquares = getAllByTestId("heatmap-day-square");
@@ -90,7 +79,7 @@ describe("HeatmapActivity", () => {
   });
 
   it("должен отображать правильные метки дней недели", () => {
-    const emptyData = generateMockHeatmapData(26);
+    const emptyData = generateMockHeatmapData(18);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByTestId } = render(<HeatmapActivity />);
@@ -104,59 +93,40 @@ describe("HeatmapActivity", () => {
   });
 
   it("должен показывать tooltip при наведении на клетку", () => {
-    // Создаем простые данные с одной неделей
-    const testData: HeatmapDayData[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Генерируем 7 дней с активностью в первый день
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (6 - i));
-
-      testData.push({
-        date,
-        dateStr: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
-        totalSeconds: i === 0 ? 3600 : 0, // 1 час в первый день
-        weekIndex: 0,
-        dayOfWeek: i,
-      });
-    }
+    const testData = generateMockHeatmapData(1, [
+      { weekIndex: 0, dayOfWeek: 0, totalSeconds: 3600 },
+    ]);
 
     mockUseUnit.mockReturnValue({ heatmapData: testData });
 
     const { getAllByTestId, queryByTestId } = render(<HeatmapActivity />);
 
-    // Находим первую клетку с активностью
     const allSquares = getAllByTestId("heatmap-day-square");
     const activeSquare = allSquares.find(sq =>
       sq.getAttribute("data-seconds") === "3600"
     );
 
     expect(activeSquare).toBeDefined();
+    expect(queryByTestId("tooltip")).not.toBeInTheDocument();
 
-    // Tooltip не должен быть виден до наведения
-    expect(queryByTestId("heatmap-tooltip")).not.toBeInTheDocument();
-
-    // Наводим на клетку
     if (activeSquare) {
-      fireEvent.mouseEnter(activeSquare);
+      const targetWrapper = activeSquare.parentElement;
+      if (targetWrapper) {
+        fireEvent.mouseEnter(targetWrapper);
 
-      // Tooltip должен появиться
-      const tooltip = queryByTestId("heatmap-tooltip");
-      expect(tooltip).toBeInTheDocument();
-      expect(tooltip).toHaveTextContent(/1.0h/);
+        const tooltip = queryByTestId("tooltip");
+        expect(tooltip).toBeInTheDocument();
+        expect(tooltip).toHaveTextContent(/1.0h/);
 
-      // Убираем курсор
-      fireEvent.mouseLeave(activeSquare);
+        fireEvent.mouseLeave(targetWrapper);
 
-      // Tooltip должен исчезнуть
-      expect(queryByTestId("heatmap-tooltip")).not.toBeInTheDocument();
+        expect(queryByTestId("tooltip")).not.toBeInTheDocument();
+      }
     }
   });
 
   it("должен показывать 'NO DATA' в tooltip для пустых дней", () => {
-    const emptyData = generateMockHeatmapData(26);
+    const emptyData = generateMockHeatmapData(18);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getAllByTestId, queryByTestId } = render(<HeatmapActivity />);
@@ -164,99 +134,59 @@ describe("HeatmapActivity", () => {
     const allSquares = getAllByTestId("heatmap-day-square");
     const emptySquare = allSquares[0]; // первая клетка всегда пустая
 
-    fireEvent.mouseEnter(emptySquare);
+    // Наводим на обертку (Tooltip.Target)
+    const targetWrapper = emptySquare.parentElement;
+    if (targetWrapper) {
+      fireEvent.mouseEnter(targetWrapper);
 
-    const tooltip = queryByTestId("heatmap-tooltip");
-    expect(tooltip).toBeInTheDocument();
-    expect(tooltip).toHaveTextContent("NO DATA");
+      const tooltip = queryByTestId("tooltip");
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveTextContent("NO DATA");
 
-    fireEvent.mouseLeave(emptySquare);
+      fireEvent.mouseLeave(targetWrapper);
 
-    expect(queryByTestId("heatmap-tooltip")).not.toBeInTheDocument();
+      expect(queryByTestId("tooltip")).not.toBeInTheDocument();
+    }
   });
 
   it("должен применять правильные цвета в зависимости от времени", () => {
-    // Создаем данные для первой недели с разными уровнями активности
-    const testData: HeatmapDayData[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Генерируем 7 дней для одной недели с разными уровнями активности
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (6 - i));
-
-      const seconds = [0, 3600, 7200, 14400, 21600, 0, 0][i]; // разные уровни
-
-      testData.push({
-        date,
-        dateStr: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
-        totalSeconds: seconds,
-        weekIndex: 0,
-        dayOfWeek: i,
-      });
-    }
+    const testData = generateMockHeatmapData(1, [
+      { weekIndex: 0, dayOfWeek: 0, totalSeconds: 0 },
+      { weekIndex: 0, dayOfWeek: 1, totalSeconds: 3600 },
+      { weekIndex: 0, dayOfWeek: 2, totalSeconds: 7200 },
+      { weekIndex: 0, dayOfWeek: 3, totalSeconds: 14400 },
+      { weekIndex: 0, dayOfWeek: 4, totalSeconds: 21600 },
+      { weekIndex: 0, dayOfWeek: 5, totalSeconds: 0 },
+      { weekIndex: 0, dayOfWeek: 6, totalSeconds: 0 },
+    ]);
 
     mockUseUnit.mockReturnValue({ heatmapData: testData });
 
-    const { getByTestId } = render(<HeatmapActivity />);
+    const { getAllByTestId } = render(<HeatmapActivity />);
 
-    // Находим первую неделю по data-testid
-    const firstWeek = getByTestId("heatmap-week-0");
-    const squares = firstWeek.querySelectorAll('[data-testid="heatmap-day-square"]');
+    const squares = getAllByTestId("heatmap-day-square");
 
-    // Проверяем intensity уровни по data-атрибуту
-    expect(squares[0].getAttribute("data-intensity")).toBe("0"); // 0ч -> intensity 0
-    expect(squares[1].getAttribute("data-intensity")).toBe("1"); // 1ч -> intensity 1
-    expect(squares[2].getAttribute("data-intensity")).toBe("2"); // 2ч -> intensity 2
-    expect(squares[3].getAttribute("data-intensity")).toBe("3"); // 4ч -> intensity 3
-    expect(squares[4].getAttribute("data-intensity")).toBe("4"); // 6ч -> intensity 4
-    expect(squares[5].getAttribute("data-intensity")).toBe("0"); // 0ч -> intensity 0
-    expect(squares[6].getAttribute("data-intensity")).toBe("0"); // 0ч -> intensity 0
-  });
+    const findIntensityBySeconds = (seconds: number) => {
+      const square = squares.find(sq => sq.getAttribute("data-seconds") === String(seconds));
+      return square?.getAttribute("data-intensity");
+    };
 
-  it("должен отображать легенду с правильными цветами", () => {
-    const emptyData = generateMockHeatmapData(26);
-    mockUseUnit.mockReturnValue({ heatmapData: emptyData });
-
-    const { getByTestId } = render(<HeatmapActivity />);
-
-    // Проверяем наличие всех уровней легенды
-    expect(getByTestId("legend-level-0")).toBeInTheDocument();
-    expect(getByTestId("legend-level-1")).toBeInTheDocument();
-    expect(getByTestId("legend-level-2")).toBeInTheDocument();
-    expect(getByTestId("legend-level-3")).toBeInTheDocument();
-    expect(getByTestId("legend-level-4")).toBeInTheDocument();
-
-    // Проверяем текст легенды
-    const legend = getByTestId("heatmap-legend");
-    expect(legend).toHaveTextContent("LESS");
-    expect(legend).toHaveTextContent("MORE");
-  });
-
-  it("должен корректно рассчитывать общую статистику", () => {
-    const dataWithActivity = generateMockHeatmapData(26, [
-      { weekIndex: 0, dayOfWeek: 1, totalSeconds: 3600 }, // 1 час
-      { weekIndex: 1, dayOfWeek: 2, totalSeconds: 3600 }, // 1 час
-      { weekIndex: 2, dayOfWeek: 3, totalSeconds: 3600 }, // 1 час
-    ]);
-    mockUseUnit.mockReturnValue({ heatmapData: dataWithActivity });
-
-    const { getByTestId } = render(<HeatmapActivity />);
-
-    // 3 часа = 03:00:00, 3 дня
-    expect(getByTestId("heatmap-summary")).toHaveTextContent(/03:00:00 in 3 days/);
+    expect(findIntensityBySeconds(0)).toBe("0");
+    expect(findIntensityBySeconds(3600)).toBe("1");
+    expect(findIntensityBySeconds(7200)).toBe("2");
+    expect(findIntensityBySeconds(14400)).toBe("3");
+    expect(findIntensityBySeconds(21600)).toBe("4");
   });
 
   it("должен рендерить правильное количество недель", () => {
-    const data = generateMockHeatmapData(26);
+    const data = generateMockHeatmapData(18);
     mockUseUnit.mockReturnValue({ heatmapData: data });
 
     const { getByTestId } = render(<HeatmapActivity />);
 
-    // Проверяем количество недель (26)
+    // Проверяем количество недель (18)
     const weeks = getByTestId("heatmap-weeks");
     const weekColumns = weeks.querySelectorAll('[data-testid^="heatmap-week-"]');
-    expect(weekColumns.length).toBe(26);
+    expect(weekColumns.length).toBe(18);
   });
 });

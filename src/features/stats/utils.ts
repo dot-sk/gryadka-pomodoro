@@ -2,91 +2,92 @@
 import { StatEntry } from "./typings";
 import { formatSecondsDate } from "../../shared/utils";
 
-export function mapStatEntriesByDate(statEntries: StatEntry[]) {
-  const result: { [key: string]: StatEntry[] } = {};
+export function mapStatEntriesByDate(
+  statEntries: StatEntry[]
+): Record<string, StatEntry[]> {
+  const result: Record<string, StatEntry[]> = {};
 
-  statEntries.forEach((entry) => {
+  for (const entry of statEntries) {
     const date = formatSecondsDate(entry.start / 1000);
     if (!result[date]) {
       result[date] = [];
     }
     result[date].push(entry);
-  });
+  }
 
   return result;
 }
 
-export function sumStatEntriesTime(statEntries: StatEntry[]) {
+export function sumStatEntriesTime(statEntries: StatEntry[]): number {
   return statEntries.reduce((acc, entry) => acc + entry.time, 0);
 }
 
-// функция возвращает дату завтра
-export const getTomorrow = () =>
-  new Date(new Date().setDate(new Date().getDate() + 1));
+function getTodayMidnight(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
 
-// функция определяет, что дата между сегодня 0 часов и завтра 0 часов
-export const isBetweenTodayAndTomorrow = (date: number) =>
-  date >= new Date().setHours(0, 0, 0, 0) &&
-  date < getTomorrow().setHours(0, 0, 0, 0);
+function getTomorrowMidnight(): Date {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+}
 
-// Типы для тепловой карты
+export function isBetweenTodayAndTomorrow(timestamp: number): boolean {
+  return (
+    timestamp >= getTodayMidnight().getTime() &&
+    timestamp < getTomorrowMidnight().getTime()
+  );
+}
+
 export type HeatmapDayData = {
   date: Date;
-  dateStr: string; // DD/MM/YYYY
+  dateStr: string;
   totalSeconds: number;
-  weekIndex: number; // номер недели от начала периода
-  dayOfWeek: number; // 0 = воскресенье, 6 = суббота
+  weekIndex: number;
+  dayOfWeek: number;
 };
 
-// Функция генерирует массив дней для тепловой карты (последние N недель)
+const DAYS_PER_WEEK = 7;
+
+function getDayOfWeekMondayBased(date: Date): number {
+  return (date.getDay() + 6) % 7;
+}
+
 export function generateHeatmapDays(numberOfWeeks: number): HeatmapDayData[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Находим воскресенье текущей недели (или сегодня, если сегодня воскресенье)
-  const dayOfWeek = today.getDay();
+  const todayDayOfWeek = getDayOfWeekMondayBased(today);
   const startDate = new Date(today);
-  startDate.setDate(today.getDate() - dayOfWeek);
+  startDate.setDate(today.getDate() - todayDayOfWeek - (numberOfWeeks - 1) * DAYS_PER_WEEK);
 
-  // Идем назад на numberOfWeeks недель от начала текущей недели
-  startDate.setDate(startDate.getDate() - (numberOfWeeks - 1) * 7);
+  const totalDays = numberOfWeeks * DAYS_PER_WEEK;
 
-  const days: HeatmapDayData[] = [];
-  const totalDays = numberOfWeeks * 7;
-
-  for (let i = 0; i < totalDays; i++) {
+  return Array.from({ length: totalDays }, (_, i) => {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);
 
-    const weekIndex = Math.floor(i / 7);
-    const dayOfWeek = date.getDay();
-
-    days.push({
+    return {
       date,
       dateStr: formatSecondsDate(date.getTime() / 1000),
       totalSeconds: 0,
-      weekIndex,
-      dayOfWeek,
-    });
-  }
-
-  return days;
+      weekIndex: Math.floor(i / DAYS_PER_WEEK),
+      dayOfWeek: getDayOfWeekMondayBased(date),
+    };
+  });
 }
 
-// Функция наполняет данные тепловой карты статистикой
 export function fillHeatmapWithStats(
   heatmapDays: HeatmapDayData[],
   statEntries: StatEntry[]
 ): HeatmapDayData[] {
   const statsByDate = mapStatEntriesByDate(statEntries);
 
-  return heatmapDays.map((day) => {
-    const entries = statsByDate[day.dateStr] || [];
-    const totalSeconds = sumStatEntriesTime(entries);
-
-    return {
-      ...day,
-      totalSeconds,
-    };
-  });
+  return heatmapDays.map((day) => ({
+    ...day,
+    totalSeconds: sumStatEntriesTime(statsByDate[day.dateStr] || []),
+  }));
 }
