@@ -5,4 +5,4 @@ import { IpcWorld } from "./typings";
 const mockIpc = { send: () => null, on: () => null };
 
 // шина событий, которая определяется в IpcRenderer
-export const ipcWorld: IpcWorld = (window as any)[IPC_WORLD] ?? mockIpc;
+export const ipcWorld: IpcWorld = window[IPC_WORLD] ?? mockIpc;

@@ -8,8 +8,8 @@ let window: BrowserWindow | null;
 
 function createWindow() {
   window = new BrowserWindow({
-    width: 375,
-    height: 630,
+    width: 376,
+    height: 152,
     show: false,
     frame: false,
     fullscreenable: false,
@@ -73,7 +73,47 @@ app.whenReady().then(() => {
   const tray = new Tray(placeholderIcon);
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: "Выйти", type: "normal", click: () => app.quit() },
+    {
+      label: "Таймер",
+      type: "normal",
+      click: () => {
+        window?.webContents.send(IpcChannels["navigate-to-timer"]);
+        if (!window?.isVisible()) {
+          // Show window at tray position
+          const bounds = tray.getBounds();
+          window?.setBounds({
+            x: bounds.x,
+            y: bounds.y + bounds.height,
+            width: window?.getBounds().width || 376,
+            height: window?.getBounds().height || 152,
+          });
+          window?.show();
+        }
+      }
+    },
+    {
+      label: "Статистика",
+      type: "normal",
+      click: () => {
+        window?.webContents.send(IpcChannels["navigate-to-stats"]);
+        if (!window?.isVisible()) {
+          const bounds = tray.getBounds();
+          window?.setBounds({
+            x: bounds.x,
+            y: bounds.y + bounds.height,
+            width: window?.getBounds().width || 376,
+            height: window?.getBounds().height || 152,
+          });
+          window?.show();
+        }
+      }
+    },
+    { type: "separator" },
+    {
+      label: "Выйти",
+      type: "normal",
+      click: () => app.quit()
+    },
   ]);
 
   tray.on("click", (e, bounds) => {
@@ -143,6 +183,10 @@ app.whenReady().then(() => {
     const secNumber = parseInt(seconds, 10);
 
     tray.setTitle(formatTime(secNumber));
+  });
+
+  ipcMain.on(IpcChannels["window:hide-after-save"], () => {
+    window?.hide();
   });
 
   // Electron-store IPC handlers

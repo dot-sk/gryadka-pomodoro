@@ -3,7 +3,6 @@ import { countdownModel } from "../../entitites/countdown";
 import {
   $statEntriesHistory,
   $statEntry,
-  domain,
   events,
   $totalToday,
   $statEntriesByDayForHeatmap,
@@ -37,7 +36,7 @@ describe("features/stats/model", () => {
   };
 
   it("должен обратотать старт интервала", async () => {
-    const statsScope = fork(domain);
+    const statsScope = fork();
 
     await allSettled(countdownModel.events.start, {
       scope: statsScope,
@@ -64,7 +63,7 @@ describe("features/stats/model", () => {
   });
 
   it('должен перейти в начальное состояние после события "reset"', async () => {
-    const statsScope = fork(domain);
+    const statsScope = fork();
 
     await allSettled(countdownModel.events.start, {
       scope: statsScope,
@@ -91,7 +90,7 @@ describe("features/stats/model", () => {
   });
 
   it('должен удалить запись после события "remove"', async () => {
-    const statsScope = fork(domain, {
+    const statsScope = fork({
       values: [
         [
           $statEntriesHistory,
@@ -119,7 +118,7 @@ describe("features/stats/model", () => {
 
   it("должен правильно суммировать записи", async () => {
     const todayNoonMs = getTodayNoonMs();
-    const statsScope = fork(domain, {
+    const statsScope = fork({
       values: [
         [
           $statEntriesHistory,
@@ -138,7 +137,7 @@ describe("features/stats/model", () => {
 
   it("должен генерировать данные для тепловой карты", async () => {
     const todayNoonMs = getTodayNoonMs();
-    const statsScope = fork(domain, {
+    const statsScope = fork({
       values: [
         [
           $statEntriesHistory,

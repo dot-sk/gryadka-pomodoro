@@ -35,13 +35,11 @@ html {
 }
 
 body {
-    --bg-color: #fafafa;
-
     margin: 0;
+    padding: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    padding: 0 20px;
-    background: var(--bg-color);
+    background: transparent;
     color: #0F0401;
 
     @apply font-sans;

@@ -1,4 +1,4 @@
-import { combine, createDomain, forward, merge, sample } from "effector";
+import { combine, createDomain, merge, sample } from "effector";
 import { CountdownState, IntervalType } from "./constants";
 import {
   CountdownStartPayload,
@@ -7,6 +7,7 @@ import {
 } from "./typings";
 import { ipcWorld } from "../../shared/ipcWorld/ipcWorld";
 import { IpcChannels } from "../../shared/ipcWorld/constants";
+import { settingsModel } from "../settings";
 
 export const domain = createDomain();
 
@@ -19,7 +20,9 @@ export const events = {
   reset: domain.event(),
   setTime: domain.event<number>(),
   setType: domain.event<IntervalType>(),
-  clockInterval: domain.event<number>()
+  clockInterval: domain.event<number>(),
+  showSuccess: domain.event(),
+  initFromSettings: domain.event<{ interval: number; type: IntervalType }>(),
 };
 
 ipcWorld.on(IpcChannels["clock:tick"], (_, msSinceLastTick) => {
@@ -32,13 +35,14 @@ const startTypeGuard = events.start.filterMap(
 const startTimeGuard = events.start.filterMap(
   ({ interval }: any = { interval: 0 }) => (interval > 0 ? interval : undefined)
 );
-const setTimeGuard = events.setTime.filter({ fn: (time) => time > 0 });
+const setTimeGuard = events.setTime.filter({ fn: (time) => time >= 0 });
 
 export const $countdownState = domain
-  .store(CountdownState.INITIAL)
+  .store(CountdownState.PAUSED)
   .on(startTimeGuard, () => CountdownState.RUNNING)
   .on(events.pause, () => CountdownState.PAUSED)
   .on(events.resume, () => CountdownState.RUNNING)
+  .on(events.showSuccess, () => CountdownState.SUCCESS)
   .reset(events.reset);
 
 const stopGuard = sample({
@@ -52,7 +56,8 @@ const stopAndSaveGuard = stopGuard.filterMap(({ save }) =>
 
 export const $countdownType = domain
   .createStore<IntervalType>(IntervalType.WORK)
-  .on(startTypeGuard, (_, type) => type);
+  .on(startTypeGuard, (_, type) => type)
+  .on(events.initFromSettings, (_, { type }) => type);
 
 export const $isRunning = $countdownState.map(
   (state) => state === CountdownState.RUNNING
@@ -62,13 +67,35 @@ export const $isPaused = $countdownState.map(
   (state) => state === CountdownState.PAUSED
 );
 
-export const $isInitial = $countdownState.map(
-  (state) => state === CountdownState.INITIAL
+export const $isSuccess = $countdownState.map(
+  (state) => state === CountdownState.SUCCESS
 );
+
+// Флаг: есть ли таймер "в процессе" (запущен или на паузе после запуска)
+// true = таймер активен (нельзя редактировать интервал)
+// Сбрасывается при reset/stop
+export const $hasActiveTimer = domain
+  .store(false)
+  .on(events.resume, () => true)
+  .on(startTimeGuard, () => true)
+  .reset(events.reset);
+
+// Лок на ручное изменение интервала: редактировать можно только если нет активного таймера
+export const $canEditTime = $hasActiveTimer.map((hasActive) => !hasActive);
 
 export const $currentInterval = domain
   .store<number>(0)
-  .on(startTimeGuard, (_, time) => time);
+  .on(startTimeGuard, (_, time) => time)
+  .on(events.initFromSettings, (_, { interval }) => interval);
+
+// Когда можно редактировать время (до первого запуска) - currentInterval = time
+sample({
+  clock: setTimeGuard,
+  source: $canEditTime,
+  filter: (canEdit) => canEdit,
+  fn: (_, newTime) => newTime,
+  target: $currentInterval,
+});
 
 // Timestamp когда стартовали/возобновили текущий отрезок
 const $startedAt = domain
@@ -80,6 +107,7 @@ const $startedAt = domain
 const $effectiveInterval = domain
   .store<number>(0)
   .on(startTimeGuard, (_, interval) => interval - 1) // -1: синхронно с $time
+  .on(events.initFromSettings, (_, { interval }) => interval - 1)
   .reset(events.reset);
 
 // При resume: обновляем startedAt
@@ -97,7 +125,8 @@ const clockIntervalIsRunning = sample({
 export const $time = domain
   .store(0)
   .on(setTimeGuard, (_, time) => time)
-  .on(startTimeGuard, (_, interval) => interval - 1); // -1: первая секунда уже началась
+  .on(startTimeGuard, (_, interval) => interval - 1) // -1: первая секунда уже началась
+  .on(events.initFromSettings, (_, { interval }) => interval - 1);
 
 // Вычисляем время из реального timestamp — нет дрифта
 sample({
@@ -117,22 +146,34 @@ sample({
   target: $effectiveInterval,
 });
 
+// При ручном изменении времени (setTime) также обновляем effectiveInterval
+sample({
+  clock: setTimeGuard,
+  fn: (time) => time,
+  target: $effectiveInterval,
+});
+
 const timeNegative = sample({
   source: $time,
   filter: (time) => time < 0, // завершаем когда время ушло в минус (0 показался полную секунду)
 });
 
+// После save -> переход в SUCCESS
+sample({
+  clock: merge([stopAndSaveGuard, timeNegative]),
+  fn: () => null,
+  target: events.showSuccess,
+});
+
+// reset countdown when timer is stopped without save
+const stopWithoutSaveGuard = stopGuard.filterMap(({ save }) =>
+  save !== true ? true : undefined
+);
+
 // reset countdown when timer reaches 0 or when it is stopped from outside
-forward({
-  from: sample({
-    source: merge([
-      // zero time event
-      timeNegative,
-      stopGuard,
-    ]),
-    fn: () => null,
-  }),
-  to: events.reset,
+sample({
+  clock: stopWithoutSaveGuard,
+  target: events.reset,
 });
 
 sample({
@@ -149,4 +190,30 @@ sample({
   clock: events.reset,
   source: $currentInterval,
   target: events.setTime,
+});
+
+// Save last interval and type to settings when starting a timer
+sample({
+  clock: events.start,
+  fn: ({ interval }) => ({ key: "lastInterval", value: interval }),
+  target: settingsModel.events.set,
+});
+
+sample({
+  clock: events.start,
+  fn: ({ type }) => ({ key: "lastIntervalType", value: type }),
+  target: settingsModel.events.set,
+});
+
+// Load last interval from settings on init
+sample({
+  clock: sample({
+    source: combine({
+      interval: settingsModel.$lastInterval,
+      type: settingsModel.$lastIntervalType,
+    }),
+    filter: ({ interval }) => interval > 0,
+  }),
+  fn: ({ interval, type }) => ({ interval, type: type as IntervalType }),
+  target: events.initFromSettings,
 });

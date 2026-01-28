@@ -1,4 +1,4 @@
-import { createDomain, forward, sample } from "effector";
+import { createDomain, sample } from "effector";
 import { countdownModel } from "../../entitites/countdown";
 import { StatEntry } from "./typings";
 import { StatEntryOwnTypes } from "./constants";
@@ -115,9 +115,9 @@ const statEntryIsCompletedEvent = sample({
   filter: (entry) => entry.end > 0 && entry.type !== StatEntryOwnTypes.INITIAL,
 });
 
-forward({
-  from: statEntryIsCompletedEvent,
-  to: [events.push, events.reset],
+sample({
+  clock: statEntryIsCompletedEvent,
+  target: [events.push, events.reset],
 });
 
 // Подписка на изменения для сохранения в electron-store

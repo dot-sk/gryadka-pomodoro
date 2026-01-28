@@ -8,4 +8,14 @@ HTMLCanvasElement.prototype.getContext = () => {
   return null;
 };
 
+HTMLCanvasElement.prototype.toDataURL = () => {
+  return "data:image/png;base64,mock";
+};
+
 document.fonts = { ready: Promise.resolve() };
+
+// Mock window.electronStore for tests
+global.window.electronStore = {
+  get: jest.fn(() => Promise.resolve(undefined)),
+  set: jest.fn(() => Promise.resolve()),
+};

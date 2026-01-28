@@ -188,19 +188,17 @@ interface RenderOptions {
 
 /**
  * Рисует dot matrix на canvas в стиле Flipper Zero.
- * При паузе показывает анимированную помидорку (скринсейвер).
+ * Всегда показывает таймер с помидоркой (прогрессом).
  * progress: 0-1, где 1 = полная помидорка, 0 = пустая
+ * isPaused: не влияет на рендер, время всегда отображается
  */
 export function renderStringToDataURL(
   text: string,
   _theme: 'dark' | 'light' = 'dark',
   canvas?: HTMLCanvasElement,
-  isPaused?: boolean,
+  _isPaused?: boolean,
   progress: number = 1
 ): string {
-  if (isPaused) {
-    return renderTomatoScreensaver(canvas);
-  }
   return renderTimer(text, canvas, progress);
 }
 

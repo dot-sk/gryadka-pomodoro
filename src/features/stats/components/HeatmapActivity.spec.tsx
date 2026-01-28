@@ -6,11 +6,12 @@ import * as effectorReact from "effector-react";
 
 // Мокаем effector-react
 jest.mock("effector-react", () => ({
-  useStore: jest.fn(),
+  useUnit: jest.fn(),
 }));
 
-const mockUseStore = effectorReact.useStore as jest.MockedFunction<
-  typeof effectorReact.useStore
+// Создаем правильно типизированный мок для useUnit
+const mockUseUnit = effectorReact.useUnit as jest.MockedFunction<
+  <T>(shape: T) => T
 >;
 
 describe("HeatmapActivity", () => {
@@ -48,7 +49,7 @@ describe("HeatmapActivity", () => {
 
   it("должен рендерить компонент с пустыми данными", () => {
     const emptyData = generateMockHeatmapData(26);
-    mockUseStore.mockReturnValue(emptyData);
+    mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByText, getByTestId } = render(<HeatmapActivity />);
 
@@ -75,7 +76,7 @@ describe("HeatmapActivity", () => {
       { weekIndex: 2, dayOfWeek: 5, totalSeconds: 14400 }, // 4 часа
       { weekIndex: 3, dayOfWeek: 0, totalSeconds: 21600 }, // 6 часов
     ]);
-    mockUseStore.mockReturnValue(dataWithActivity);
+    mockUseUnit.mockReturnValue({ heatmapData: dataWithActivity });
 
     const { getByTestId, getAllByTestId } = render(<HeatmapActivity />);
 
@@ -90,7 +91,7 @@ describe("HeatmapActivity", () => {
 
   it("должен отображать правильные метки дней недели", () => {
     const emptyData = generateMockHeatmapData(26);
-    mockUseStore.mockReturnValue(emptyData);
+    mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByTestId } = render(<HeatmapActivity />);
 
@@ -122,7 +123,7 @@ describe("HeatmapActivity", () => {
       });
     }
 
-    mockUseStore.mockReturnValue(testData);
+    mockUseUnit.mockReturnValue({ heatmapData: testData });
 
     const { getAllByTestId, queryByTestId } = render(<HeatmapActivity />);
 
@@ -156,7 +157,7 @@ describe("HeatmapActivity", () => {
 
   it("должен показывать 'NO DATA' в tooltip для пустых дней", () => {
     const emptyData = generateMockHeatmapData(26);
-    mockUseStore.mockReturnValue(emptyData);
+    mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getAllByTestId, queryByTestId } = render(<HeatmapActivity />);
 
@@ -196,7 +197,7 @@ describe("HeatmapActivity", () => {
       });
     }
 
-    mockUseStore.mockReturnValue(testData);
+    mockUseUnit.mockReturnValue({ heatmapData: testData });
 
     const { getByTestId } = render(<HeatmapActivity />);
 
@@ -216,7 +217,7 @@ describe("HeatmapActivity", () => {
 
   it("должен отображать легенду с правильными цветами", () => {
     const emptyData = generateMockHeatmapData(26);
-    mockUseStore.mockReturnValue(emptyData);
+    mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByTestId } = render(<HeatmapActivity />);
 
@@ -239,7 +240,7 @@ describe("HeatmapActivity", () => {
       { weekIndex: 1, dayOfWeek: 2, totalSeconds: 3600 }, // 1 час
       { weekIndex: 2, dayOfWeek: 3, totalSeconds: 3600 }, // 1 час
     ]);
-    mockUseStore.mockReturnValue(dataWithActivity);
+    mockUseUnit.mockReturnValue({ heatmapData: dataWithActivity });
 
     const { getByTestId } = render(<HeatmapActivity />);
 
@@ -249,7 +250,7 @@ describe("HeatmapActivity", () => {
 
   it("должен рендерить правильное количество недель", () => {
     const data = generateMockHeatmapData(26);
-    mockUseStore.mockReturnValue(data);
+    mockUseUnit.mockReturnValue({ heatmapData: data });
 
     const { getByTestId } = render(<HeatmapActivity />);
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useStore } from "effector-react";
+import { useUnit } from "effector-react";
 import { $statEntriesByDayForHeatmap } from "../model";
 import { HeatmapDayData } from "../utils";
 import { formatSeconds } from "../../../shared/utils";
@@ -80,7 +80,9 @@ const Tooltip = ({ day, position }: TooltipProps) => {
 };
 
 export const HeatmapActivity = () => {
-  const heatmapData = useStore($statEntriesByDayForHeatmap);
+  const { heatmapData } = useUnit({
+    heatmapData: $statEntriesByDayForHeatmap,
+  });
   const [hoveredDay, setHoveredDay] = useState<HeatmapDayData | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
@@ -114,45 +116,63 @@ export const HeatmapActivity = () => {
   ).length;
 
   return (
-    <div className="py-4" data-testid="heatmap-activity">
-      <div className="mb-4">
+    <div className="flex flex-col items-center gap-3" data-testid="heatmap-activity">
+      {/* Заголовок и статистика */}
+      <div className="text-center">
         <h2 className="text-xl font-sansWide mb-2 text-black" data-testid="heatmap-title">ACTIVITY</h2>
         <div className="text-sm text-gray-700 font-mono" data-testid="heatmap-summary">
           {formatSeconds(totalSeconds, { omitEmpty: false })} in {daysWithActivity} {daysWithActivity === 1 ? "day" : "days"}
         </div>
       </div>
 
-      <div className="flex gap-[2px] mb-4 overflow-x-auto pb-2" data-testid="heatmap-grid">
-        {/* Метки дней недели */}
-        <div className="flex flex-col gap-[2px] text-[10px] text-gray-600 mr-1 font-mono" data-testid="heatmap-day-labels">
-          {dayLabels.map((label, index) => (
-            <div
-              key={index}
-              className="w-6 h-[10px] flex items-center justify-end"
-              style={{
-                visibility: visibleDayIndices.includes(index)
-                  ? "visible"
-                  : "hidden",
-              }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
+      {/* Сетка с рамкой в стиле CanvasCountdown */}
+      <div
+        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg"
+      >
+        <div className="relative px-6 py-5 bg-white rounded-lg shadow-inner">
+          {/* Терминальные уголки - верхний левый */}
+          <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-gray-300 rounded-tl" />
+          {/* Верхний правый */}
+          <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-gray-300 rounded-tr" />
+          {/* Нижний левый */}
+          <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-gray-300 rounded-bl" />
+          {/* Нижний правый */}
+          <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-gray-300 rounded-br" />
 
-        {/* Сетка недель */}
-        <div className="flex gap-[2px]" data-testid="heatmap-weeks">
-          {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="flex flex-col gap-[2px]" data-testid={`heatmap-week-${weekIndex}`}>
-              {week.map((day) => (
-                <DaySquare
-                  key={day.dateStr}
-                  day={day}
-                  onHover={handleHover}
-                />
+          {/* Сетка недель */}
+          <div className="flex gap-[2px]" data-testid="heatmap-grid">
+            {/* Метки дней недели */}
+            <div className="flex flex-col gap-[2px] text-[10px] text-gray-600 mr-1 font-mono" data-testid="heatmap-day-labels">
+              {dayLabels.map((label, index) => (
+                <div
+                  key={index}
+                  className="w-6 h-[10px] flex items-center justify-end"
+                  style={{
+                    visibility: visibleDayIndices.includes(index)
+                      ? "visible"
+                      : "hidden",
+                  }}
+                >
+                  {label}
+                </div>
               ))}
             </div>
-          ))}
+
+            {/* Колонки недель */}
+            <div className="flex gap-[2px]" data-testid="heatmap-weeks">
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="flex flex-col gap-[2px]" data-testid={`heatmap-week-${weekIndex}`}>
+                  {week.map((day) => (
+                    <DaySquare
+                      key={day.dateStr}
+                      day={day}
+                      onHover={handleHover}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

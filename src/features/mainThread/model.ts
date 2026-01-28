@@ -10,11 +10,12 @@ import { createDomain, combine, sample, merge } from "effector";
  */
 const domain = createDomain("mainThread");
 
-const events = {
+export const events = {
   setFontsReady: domain.event<boolean>(),
+  render: domain.event<{ time: number; totalTime: number; isPaused: boolean }>(),
 };
 
-const $fontReady = domain
+export const $fontReady = domain
   .store(false)
   .on(events.setFontsReady, (_, fontIsReady) => fontIsReady);
 
@@ -25,35 +26,24 @@ whenFontsReady().then(() => {
 const $renderData = combine({
   time: countdownModel.$time,
   totalTime: countdownModel.$currentInterval,
-  isInitial: countdownModel.$isInitial,
+  isPaused: countdownModel.$isPaused,
   isRunning: countdownModel.$isRunning,
   fontReady: $fontReady,
 });
 
 const trayCanvas = document.createElement("canvas");
 
-function render({ time, totalTime, isInitial }: { time: number; totalTime: number; isInitial: boolean }) {
-  // +1 к time т.к. показываем interval-1 при старте, но progress должен быть 100%
-  const progress = totalTime > 0 ? Math.min(1, (time + 1) / totalTime) : 1;
-  ipcWorld.send(
-    IpcChannels["countdown-tick-as-image"],
-    renderStringToDataURL(formatSeconds(time), 'light', trayCanvas, isInitial, progress)
-  );
-}
-
 // Рендер таймера когда время меняется (таймер ЗАПУЩЕН, не на паузе)
 sample({
   clock: countdownModel.$time,
   source: $renderData,
   filter: ({ fontReady, isRunning }) => fontReady && isRunning,
-}).watch(render);
+  fn: ({ time, totalTime, isPaused }) => ({ time, totalTime, isPaused }),
+  target: events.render,
+});
 
-// Рендер скринсейвера на каждый тик когда isInitial (нет активного таймера)
-sample({
-  clock: countdownModel.events.clockInterval,
-  source: $renderData,
-  filter: ({ fontReady, isInitial }) => fontReady && isInitial,
-}).watch(render);
+// Во время паузы НЕ рендерим на каждый тик - время в трее остаётся статичным
+// Рендер при паузе происходит один раз через merge ниже
 
 // Немедленный рендер при смене состояния (старт/пауза/резюм/стоп)
 sample({
@@ -65,4 +55,16 @@ sample({
   ]),
   source: $renderData,
   filter: ({ fontReady }) => fontReady,
-}).watch(render);
+  fn: ({ time, totalTime, isPaused }) => ({ time, totalTime, isPaused }),
+  target: events.render,
+});
+
+// Подписка на событие рендера для отправки в IPC
+events.render.watch(({ time, totalTime, isPaused }) => {
+  // +1 к time т.к. показываем interval-1 при старте, но progress должен быть 100%
+  const progress = totalTime > 0 ? Math.min(1, (time + 1) / totalTime) : 1;
+  ipcWorld.send(
+    IpcChannels["countdown-tick-as-image"],
+    renderStringToDataURL(formatSeconds(time), 'light', trayCanvas, isPaused, progress)
+  );
+});

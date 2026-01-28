@@ -1,10 +1,12 @@
 import React, { useCallback, useState } from "react";
-import { useStore } from "effector-react";
+import { useUnit } from "effector-react";
 import { $settings, events } from "../model";
 import { formatSeconds, parseSeconds } from "../../../shared/utils";
 
 export const SettingsPanel = () => {
-  const settings = useStore($settings);
+  const { settings } = useUnit({
+    settings: $settings,
+  });
 
   const [dailyGoal, setDailyGoal] = useState(
     formatSeconds(settings.dailyGoalSeconds)

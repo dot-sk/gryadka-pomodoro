@@ -1,0 +1,90 @@
+@startuml Timer Sequence Diagram
+
+actor User
+participant "Electron\nTray" as Tray
+participant "Electron\nMenu" as Menu
+participant "TimerPage\nCanvasCountdown" as UI
+participant "countdownModel\n(effector)" as Countdown
+participant "statsModel\n(effector)" as Stats
+participant "Electron\nStore" as Store
+participant "IPC\nclock:tick" as IPC
+
+== Запуск приложения ==
+User -> Tray: клик левой кнопкой
+Tray -> UI: открыть окно
+UI -> Countdown: подписка на $countdownState
+UI -> Countdown: подписка на $time
+note right: UI отображает Paused state
+
+== Старт таймера ==
+User -> UI: клик / пробел / enter
+UI -> Countdown: events.resume()
+Countdown -> Countdown: $countdownState = RUNNING
+Countdown -> UI: обновление состояния
+UI -> UI: renderLargeTimer()
+note right: Пиксельная анимация canvas
+
+== Тик таймера ==
+loop Каждую секунду
+  IPC -> Countdown: clock:tick
+  Countdown -> Countdown: уменьшить $time
+  Countdown -> UI: обновление $time
+  UI -> UI: перерисовка canvas
+end
+
+== Пауза ==
+User -> UI: клик / пробел
+UI -> Countdown: events.pause()
+Countdown -> Countdown: $countdownState = PAUSED
+Countdown -> UI: обновление состояния
+note right: Таймер остановлен, но время сохранено
+
+== Изменение времени (стрелки) ==
+User -> UI: стрелка ←/→
+UI -> Countdown: events.setTime(newTime)
+Countdown -> Countdown: $time = newTime
+Countdown -> UI: обновление $time
+UI -> UI: перерисовка canvas
+
+== Завершение интервала (автоматически) ==
+IPC -> Countdown: clock:tick
+Countdown -> Countdown: $time достигло 0
+Countdown -> Countdown: events.end()
+Countdown -> Stats: events.push({start, end, time, type})
+Stats -> Store: сохранение в Electron Store
+Stats -> UI: обновление $statEntriesHistory
+UI -> UI: показать "Время сохранено! ✓"
+UI -> UI: wait(2000ms)
+UI -> Tray: вернуться к иконке в трее
+
+== Остановка вручную (двойной клик) ==
+User -> UI: двойной клик
+UI -> Countdown: events.stop()
+Countdown -> Stats: events.push({start, end, time, type})
+Stats -> Store: сохранение в Electron Store
+Stats -> UI: обновление $statEntriesHistory
+UI -> UI: показать "Время сохранено! ✓"
+UI -> UI: wait(2000ms)
+UI -> Tray: вернуться к иконке в трее
+
+== Открытие статистики ==
+User -> Tray: правый клик мыши
+Tray -> Menu: показать контекстное меню
+User -> Menu: выбор "Статистика"
+Menu -> UI: открыть окно статистики
+UI -> Stats: подписка на $statEntriesByDayForHeatmap
+Stats -> Store: загрузить историю
+Store -> Stats: данные за 26 недель
+Stats -> UI: отобразить HeatmapActivity
+
+== Закрытие статистики ==
+User -> UI: клик / ⌘W
+UI -> Tray: вернуться к иконке в трее
+
+== Выход из приложения ==
+User -> Tray: правый клик мыши
+Tray -> Menu: показать контекстное меню
+User -> Menu: выбор "Выйти"
+Menu -> Tray: app.quit()
+
+@enduml
