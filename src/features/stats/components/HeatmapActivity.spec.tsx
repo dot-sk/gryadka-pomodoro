@@ -87,9 +87,9 @@ describe("HeatmapActivity", () => {
     const dayLabels = getByTestId("heatmap-day-labels");
 
     // Проверяем видимые метки (пн, ср, пт)
-    expect(dayLabels).toHaveTextContent("MO");
-    expect(dayLabels).toHaveTextContent("WE");
-    expect(dayLabels).toHaveTextContent("FR");
+    expect(dayLabels).toHaveTextContent("ПН");
+    expect(dayLabels).toHaveTextContent("СР");
+    expect(dayLabels).toHaveTextContent("ПТ");
   });
 
   it("должен показывать tooltip при наведении на клетку", () => {
@@ -116,7 +116,7 @@ describe("HeatmapActivity", () => {
 
         const tooltip = queryByTestId("tooltip");
         expect(tooltip).toBeInTheDocument();
-        expect(tooltip).toHaveTextContent(/1.0h/);
+        expect(tooltip).toHaveTextContent(/1.0ч/);
 
         fireEvent.mouseLeave(targetWrapper);
 
@@ -141,7 +141,7 @@ describe("HeatmapActivity", () => {
 
       const tooltip = queryByTestId("tooltip");
       expect(tooltip).toBeInTheDocument();
-      expect(tooltip).toHaveTextContent("NO DATA");
+      expect(tooltip).toHaveTextContent("НЕТ ДАННЫХ");
 
       fireEvent.mouseLeave(targetWrapper);
 
