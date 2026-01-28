@@ -35,58 +35,39 @@ export const SuccessMessage = ({
     };
   }, [duration, hideWindowDelay, onComplete, onHideWindow]);
 
-  // Размеры совпадают с canvas таймера (304x88) + padding px-6 py-5 (24px, 20px)
-  // Итого внутренняя область: 304px x 88px
+  // Размеры совпадают с canvas таймера (304x88)
   return (
     <div
-      className="relative flex flex-col items-center gap-3"
+      className="flex items-center justify-center"
       data-testid="success-message"
     >
-      {/* Терминальная рамка с градиентом (как у CanvasCountdown) */}
+      {/* Контент - фиксированный размер как у canvas таймера */}
       <div
-        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg"
-        data-testid="success-message-border"
+        className="flex flex-col items-center justify-center gap-2"
+        style={{ width: 304, height: 88 }}
       >
-        {/* Внутренняя рамка - px-6 py-5 как у CanvasCountdown */}
-        <div className="relative px-6 py-5 bg-white rounded-lg shadow-inner">
-          {/* Терминальные уголки - верхний левый */}
-          <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-gray-300 rounded-tl" />
-          {/* Верхний правый */}
-          <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-gray-300 rounded-tr" />
-          {/* Нижний левый */}
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-gray-300 rounded-bl" />
-          {/* Нижний правый */}
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-gray-300 rounded-br" />
+        {/* Пиксельная галочка */}
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 48 48"
+          className="text-green-600"
+          style={{ imageRendering: "pixelated" }}
+        >
+          {/* Пиксельная галочка в стиле dot matrix */}
+          <rect x="32" y="8" width="8" height="8" fill="currentColor" />
+          <rect x="24" y="16" width="8" height="8" fill="currentColor" />
+          <rect x="32" y="16" width="8" height="8" fill="currentColor" />
+          <rect x="16" y="24" width="8" height="8" fill="currentColor" />
+          <rect x="24" y="24" width="8" height="8" fill="currentColor" />
+          <rect x="8" y="16" width="8" height="8" fill="currentColor" />
+          <rect x="16" y="16" width="8" height="8" fill="currentColor" />
+        </svg>
 
-          {/* Контент - фиксированный размер как у canvas таймера */}
-          <div 
-            className="flex flex-col items-center justify-center gap-2"
-            style={{ width: 304, height: 88 }}
-          >
-            {/* Пиксельная галочка */}
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 48 48"
-              className="text-green-600"
-              style={{ imageRendering: "pixelated" }}
-            >
-              {/* Пиксельная галочка в стиле dot matrix */}
-              <rect x="32" y="8" width="8" height="8" fill="currentColor" />
-              <rect x="24" y="16" width="8" height="8" fill="currentColor" />
-              <rect x="32" y="16" width="8" height="8" fill="currentColor" />
-              <rect x="16" y="24" width="8" height="8" fill="currentColor" />
-              <rect x="24" y="24" width="8" height="8" fill="currentColor" />
-              <rect x="8" y="16" width="8" height="8" fill="currentColor" />
-              <rect x="16" y="16" width="8" height="8" fill="currentColor" />
-            </svg>
-
-            {/* Текст в моноширинном шрифте */}
-            <p className="text-xs font-mono text-gray-800 tracking-wide uppercase">
-              {message} ✓
-            </p>
-          </div>
-        </div>
+        {/* Текст в моноширинном шрифте */}
+        <p className="text-xs font-mono text-gray-800 tracking-wide uppercase">
+          {message} ✓
+        </p>
       </div>
     </div>
   );

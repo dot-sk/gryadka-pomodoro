@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { useUnit } from "effector-react";
 import { formatSeconds } from "../../../shared/utils";
 import {
@@ -8,7 +8,8 @@ import {
   $canEditTime,
   events,
 } from "../model";
-import { renderLargeTimer } from "../../../shared/renderLargeTimer/renderLargeTimer";
+import { DotMatrixCanvas } from "../../../shared/components/DotMatrixCanvas/DotMatrixCanvas";
+import { createTimerMatrix } from "../../../shared/utils/matrixUtils";
 
 export const CanvasCountdown = () => {
   const { time, currentInterval: rawInterval, isRunning, canEditTime } = useUnit({
@@ -18,17 +19,29 @@ export const CanvasCountdown = () => {
     canEditTime: $canEditTime,
   });
   const currentInterval = rawInterval || 1;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Вычисляем прогресс: +1 к time т.к. показываем interval-1 при старте
   const progress = currentInterval > 0 ? Math.min(1, (time + 1) / currentInterval) : 1;
 
-  useEffect(() => {
-    if (!canvasRef.current) return;
+  // Форматируем время
+  const timeString = formatSeconds(time);
 
-    const timeString = formatSeconds(time);
-    renderLargeTimer(timeString, canvasRef.current, progress);
-  }, [time, progress]);
+  // Определяем нужен ли компактный режим для HH:MM:SS
+  const isCompact = timeString.length >= 8;
+
+  // Параметры в зависимости от формата
+  const dotSize = isCompact ? 6 : 8;
+  const dotGap = isCompact ? 3 : 4;
+
+  // Параметры для layout в точках (не пикселях)
+  const charGap = 1;
+  const padding = 1;
+
+  // Создаем матрицу для отображения
+  const matrix = useMemo(
+    () => createTimerMatrix(timeString, progress, { charGap, padding }),
+    [timeString, progress, charGap, padding]
+  );
 
   // Refs для отслеживания состояния зажатых клавиш
   const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -133,38 +146,19 @@ export const CanvasCountdown = () => {
 
   return (
     <div
-      className="relative flex flex-col items-center gap-3"
+      className="flex items-center justify-center"
       data-testid="canvas-countdown-container"
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       style={{ cursor: "pointer" }}
     >
-      {/* Терминальная рамка с градиентом */}
-      <div
-        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg"
-        data-testid="canvas-countdown-border"
-      >
-        {/* Внутренняя рамка */}
-        <div className="relative px-6 py-5 bg-white rounded-lg shadow-inner">
-          {/* Терминальные уголки - верхний левый */}
-          <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-gray-300 rounded-tl" />
-          {/* Верхний правый */}
-          <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-gray-300 rounded-tr" />
-          {/* Нижний левый */}
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-gray-300 rounded-bl" />
-          {/* Нижний правый */}
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-gray-300 rounded-br" />
-
-          {/* Canvas дисплей */}
-          <canvas
-            ref={canvasRef}
-            data-testid="canvas-countdown-display"
-            className="block"
-            style={{ imageRendering: "pixelated" }}
-          />
-        </div>
-      </div>
-
+      <DotMatrixCanvas
+        matrix={matrix}
+        dotSize={dotSize}
+        dotGap={dotGap}
+        data-testid="canvas-countdown-display"
+        className="block"
+      />
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { CanvasCountdown } from "../../entitites/countdown/components/CanvasCoun
 import { SuccessMessage } from "../../entitites/countdown/components/SuccessMessage";
 import { ipcWorld } from "../../shared/ipcWorld/ipcWorld";
 import { IpcChannels } from "../../shared/ipcWorld/constants";
+import { PageContainer } from "../../shared/components/PageContainer";
 
 const SUCCESS_MESSAGE_DURATION = 2000;
 const HIDE_WINDOW_DELAY = 1500; // Скрываем окно раньше, чтобы анимация закрытия была плавной
@@ -22,7 +23,7 @@ export const TimerPage = () => {
   };
 
   return (
-    <div className="flex justify-center items-center">
+    <PageContainer>
       {isSuccess ? (
         <SuccessMessage
           message="Время сохранено!"
@@ -34,6 +35,6 @@ export const TimerPage = () => {
       ) : (
         <CanvasCountdown />
       )}
-    </div>
+    </PageContainer>
   );
 };

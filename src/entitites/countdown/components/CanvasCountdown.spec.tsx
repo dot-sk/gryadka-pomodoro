@@ -49,20 +49,6 @@ describe("CanvasCountdown", () => {
     expect(canvas.tagName).toBe("CANVAS");
   });
 
-  it("должен иметь терминальную рамку", () => {
-    mockUseUnit.mockReturnValue({
-      time: 1500,
-      currentInterval: 1500,
-      isRunning: false,
-      canEditTime: true,
-    });
-
-    const { getByTestId } = render(<CanvasCountdown />);
-
-    const border = getByTestId("canvas-countdown-border");
-    expect(border).toBeInTheDocument();
-  });
-
   it("должен обновлять canvas при изменении времени", () => {
     mockUseUnit.mockReturnValue({
       time: 1500,
@@ -384,6 +370,40 @@ describe("CanvasCountdown", () => {
       expect(events.setTime).toHaveBeenCalledTimes(1);
 
       jest.useRealTimers();
+    });
+  });
+
+  describe("Canvas размеры для разных форматов времени", () => {
+    it("должен использовать компактный размер для HH:MM:SS и влезать в 360px", () => {
+      // 7199 секунд = 01:59:59 - максимальное значение перед 2 часами
+      mockUseUnit.mockReturnValue({
+        time: 7199,
+        currentInterval: 7200,
+        isRunning: false,
+        canEditTime: true,
+      });
+
+      const { getByTestId } = render(<CanvasCountdown />);
+      const canvas = getByTestId("canvas-countdown-display") as HTMLCanvasElement;
+
+      // Проверяем что canvas влезает в окно 360x136
+      expect(canvas.width).toBeLessThanOrEqual(360);
+      expect(canvas.width).toBeGreaterThan(0);
+    });
+
+    it("должен влезать в 360px даже при максимальном времени (2 часа)", () => {
+      // 7200 секунд = 02:00:00 - максимальное значение
+      mockUseUnit.mockReturnValue({
+        time: 7200,
+        currentInterval: 7200,
+        isRunning: false,
+        canEditTime: true,
+      });
+
+      const { getByTestId } = render(<CanvasCountdown />);
+      const canvas = getByTestId("canvas-countdown-display") as HTMLCanvasElement;
+
+      expect(canvas.width).toBeLessThanOrEqual(360);
     });
   });
 });

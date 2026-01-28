@@ -1,9 +1,10 @@
 import { HeatmapActivity } from "../../features/stats";
+import { PageContainer } from "../../shared/components/PageContainer";
 
 export const StatsPage = () => {
   return (
-    <div className="w-full h-full flex justify-center items-center">
+    <PageContainer>
       <HeatmapActivity />
-    </div>
+    </PageContainer>
   );
 };

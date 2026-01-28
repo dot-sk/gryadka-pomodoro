@@ -71,52 +71,40 @@ export function HeatmapActivity(): React.ReactElement {
   );
 
   return (
-    <div className="w-full h-full flex items-center justify-center" data-testid="heatmap-activity">
-      <div
-        ref={containerRef}
-        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg w-full h-full"
-      >
-        <div className="relative px-4 py-3 bg-white rounded-lg shadow-inner w-full h-full flex items-center justify-center">
-          <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-l-2 border-t-2 border-gray-300 rounded-tl" />
-          <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-r-2 border-t-2 border-gray-300 rounded-tr" />
-          <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-l-2 border-b-2 border-gray-300 rounded-bl" />
-          <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-r-2 border-b-2 border-gray-300 rounded-br" />
+    <div className="w-full h-full flex items-center justify-center px-4 py-3" data-testid="heatmap-activity" ref={containerRef}>
+      <div className="flex gap-[3px]" data-testid="heatmap-grid">
+        <div className="flex flex-col gap-[3px] text-[9px] text-gray-600 mr-0.5 font-mono" data-testid="heatmap-day-labels">
+          {DAY_LABELS.map((label, index) => (
+            <div
+              key={index}
+              className="w-5 h-[11px] flex items-center justify-end"
+              style={{
+                visibility: VISIBLE_DAY_INDICES.includes(index)
+                  ? "visible"
+                  : "hidden",
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
 
-          <div className="flex gap-[3px]" data-testid="heatmap-grid">
-            <div className="flex flex-col gap-[3px] text-[9px] text-gray-600 mr-0.5 font-mono" data-testid="heatmap-day-labels">
-              {DAY_LABELS.map((label, index) => (
-                <div
-                  key={index}
-                  className="w-5 h-[11px] flex items-center justify-end"
-                  style={{
-                    visibility: VISIBLE_DAY_INDICES.includes(index)
-                      ? "visible"
-                      : "hidden",
-                  }}
-                >
-                  {label}
-                </div>
+        <div className="flex gap-[3px]" data-testid="heatmap-weeks">
+          {weeks.map((week, weekIndex) => (
+            <div
+              key={weekIndex}
+              className="flex flex-col gap-[3px]"
+              data-testid={`heatmap-week-${weekIndex}`}
+            >
+              {week.map((day) => (
+                <DaySquare
+                  key={day.dateStr}
+                  day={day}
+                  containerRef={containerRef}
+                />
               ))}
             </div>
-
-            <div className="flex gap-[3px]" data-testid="heatmap-weeks">
-              {weeks.map((week, weekIndex) => (
-                <div
-                  key={weekIndex}
-                  className="flex flex-col gap-[3px]"
-                  data-testid={`heatmap-week-${weekIndex}`}
-                >
-                  {week.map((day) => (
-                    <DaySquare
-                      key={day.dateStr}
-                      day={day}
-                      containerRef={containerRef}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

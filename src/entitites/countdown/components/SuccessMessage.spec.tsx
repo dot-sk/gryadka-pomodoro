@@ -16,7 +16,6 @@ describe("SuccessMessage", () => {
     render(<SuccessMessage message="Время сохранено!" />);
 
     expect(screen.getByTestId("success-message")).toBeInTheDocument();
-    expect(screen.getByTestId("success-message-border")).toBeInTheDocument();
     expect(screen.getByText(/Время сохранено!/)).toBeInTheDocument();
   });
 

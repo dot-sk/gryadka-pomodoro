@@ -88,3 +88,21 @@ export const SuccessState: Story = {
     );
   },
 };
+
+export const LongTimerHHMMSS: Story = {
+  name: 'Long Timer (HH:MM:SS Format)',
+  render: () => {
+    const scope = fork({
+      values: [
+        [countdownModel.$time, 7199], // 1:59:59
+        [countdownModel.$currentInterval, 7200], // 2 hours
+        [countdownModel.$countdownState, CountdownState.RUNNING],
+      ],
+    });
+    return (
+      <Provider value={scope}>
+        <TimerPage />
+      </Provider>
+    );
+  },
+};
