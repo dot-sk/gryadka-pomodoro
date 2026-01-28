@@ -47,7 +47,7 @@ describe("HeatmapActivity", () => {
   };
 
   it("должен рендерить компонент с пустыми данными", () => {
-    const emptyData = generateMockHeatmapData(18);
+    const emptyData = generateMockHeatmapData(21);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByTestId } = render(<HeatmapActivity />);
@@ -58,7 +58,7 @@ describe("HeatmapActivity", () => {
     // Проверяем количество недель (18 колонок)
     const weeks = getByTestId("heatmap-weeks");
     const weekColumns = weeks.querySelectorAll('[data-testid^="heatmap-week-"]');
-    expect(weekColumns.length).toBe(18);
+    expect(weekColumns.length).toBe(21);
   });
 
   it("должен рендерить компонент с данными", () => {
@@ -79,7 +79,7 @@ describe("HeatmapActivity", () => {
   });
 
   it("должен отображать правильные метки дней недели", () => {
-    const emptyData = generateMockHeatmapData(18);
+    const emptyData = generateMockHeatmapData(21);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getByTestId } = render(<HeatmapActivity />);
@@ -126,7 +126,7 @@ describe("HeatmapActivity", () => {
   });
 
   it("должен показывать 'NO DATA' в tooltip для пустых дней", () => {
-    const emptyData = generateMockHeatmapData(18);
+    const emptyData = generateMockHeatmapData(21);
     mockUseUnit.mockReturnValue({ heatmapData: emptyData });
 
     const { getAllByTestId, queryByTestId } = render(<HeatmapActivity />);
@@ -179,7 +179,7 @@ describe("HeatmapActivity", () => {
   });
 
   it("должен рендерить правильное количество недель", () => {
-    const data = generateMockHeatmapData(18);
+    const data = generateMockHeatmapData(21);
     mockUseUnit.mockReturnValue({ heatmapData: data });
 
     const { getByTestId } = render(<HeatmapActivity />);
@@ -187,6 +187,6 @@ describe("HeatmapActivity", () => {
     // Проверяем количество недель (18)
     const weeks = getByTestId("heatmap-weeks");
     const weekColumns = weeks.querySelectorAll('[data-testid^="heatmap-week-"]');
-    expect(weekColumns.length).toBe(18);
+    expect(weekColumns.length).toBe(21);
   });
 });

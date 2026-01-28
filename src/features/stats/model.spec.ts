@@ -150,8 +150,8 @@ describe("features/stats/model", () => {
 
     const heatmapData = statsScope.getState($statEntriesByDayForHeatmap);
 
-    // Проверяем, что данные генерируются (18 недель * 7 дней = 126 дней)
-    expect(heatmapData).toHaveLength(126);
+    // Проверяем, что данные генерируются (21 неделя * 7 дней = 147 дней)
+    expect(heatmapData).toHaveLength(147);
 
     // Проверяем, что для сегодняшнего дня есть запись с данными
     const todayStr = formatSecondsDate(todayNoonMs / 1000);

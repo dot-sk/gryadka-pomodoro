@@ -44,7 +44,7 @@ function DaySquare({ day, containerRef }: DaySquareProps): React.ReactElement {
           data-intensity={intensity}
           data-date={day.dateStr}
           data-seconds={day.totalSeconds}
-          className={`w-[10px] h-[10px] ${INTENSITY_COLORS[intensity]} border rounded-[1px] cursor-pointer hover:ring-1 hover:ring-orange-400 transition-all`}
+          className={`w-[11px] h-[11px] ${INTENSITY_COLORS[intensity]} border rounded-[1px] cursor-pointer hover:ring-1 hover:ring-orange-400 transition-all`}
         />
       </Tooltip.Target>
       <Tooltip.Content>
@@ -71,23 +71,23 @@ export function HeatmapActivity(): React.ReactElement {
   );
 
   return (
-    <div className="flex flex-col items-center" data-testid="heatmap-activity">
+    <div className="w-full h-full flex items-center justify-center" data-testid="heatmap-activity">
       <div
         ref={containerRef}
-        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg"
+        className="relative p-1 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-lg w-full h-full"
       >
-        <div className="relative px-6 py-5 bg-white rounded-lg shadow-inner">
-          <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-gray-300 rounded-tl" />
-          <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-gray-300 rounded-tr" />
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-gray-300 rounded-bl" />
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-gray-300 rounded-br" />
+        <div className="relative px-4 py-3 bg-white rounded-lg shadow-inner w-full h-full flex items-center justify-center">
+          <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-l-2 border-t-2 border-gray-300 rounded-tl" />
+          <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-r-2 border-t-2 border-gray-300 rounded-tr" />
+          <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-l-2 border-b-2 border-gray-300 rounded-bl" />
+          <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-r-2 border-b-2 border-gray-300 rounded-br" />
 
-          <div className="flex gap-[2px]" data-testid="heatmap-grid">
-            <div className="flex flex-col gap-[2px] text-[10px] text-gray-600 mr-1 font-mono" data-testid="heatmap-day-labels">
+          <div className="flex gap-[3px]" data-testid="heatmap-grid">
+            <div className="flex flex-col gap-[3px] text-[9px] text-gray-600 mr-0.5 font-mono" data-testid="heatmap-day-labels">
               {DAY_LABELS.map((label, index) => (
                 <div
                   key={index}
-                  className="w-6 h-[10px] flex items-center justify-end"
+                  className="w-5 h-[11px] flex items-center justify-end"
                   style={{
                     visibility: VISIBLE_DAY_INDICES.includes(index)
                       ? "visible"
@@ -99,11 +99,11 @@ export function HeatmapActivity(): React.ReactElement {
               ))}
             </div>
 
-            <div className="flex gap-[2px]" data-testid="heatmap-weeks">
+            <div className="flex gap-[3px]" data-testid="heatmap-weeks">
               {weeks.map((week, weekIndex) => (
                 <div
                   key={weekIndex}
-                  className="flex flex-col gap-[2px]"
+                  className="flex flex-col gap-[3px]"
                   data-testid={`heatmap-week-${weekIndex}`}
                 >
                   {week.map((day) => (

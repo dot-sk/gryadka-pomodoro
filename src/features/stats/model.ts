@@ -54,10 +54,10 @@ export const $statEntriesHistoryAsc = $statEntriesHistory.map((entries) =>
 export const $statEntriesHistoryAscByDate =
   $statEntriesHistoryAsc.map(mapStatEntriesByDate);
 
-// Селектор для тепловой карты (последние 18 недель - компактный размер под окно)
+// Селектор для тепловой карты (последние 21 неделя - под размер окна 360x136)
 export const $statEntriesByDayForHeatmap = $statEntriesHistory.map(
   (entries) => {
-    const heatmapDays = generateHeatmapDays(18);
+    const heatmapDays = generateHeatmapDays(21);
     return fillHeatmapWithStats(heatmapDays, entries);
   }
 );
