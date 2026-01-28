@@ -16,7 +16,9 @@
     "electron:build": "rm -rf {build,dist}/ && vite build && electron-builder",
     "lint:ts": "tsc --noEmit",
     "storybook": "storybook dev",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "release": "./scripts/release.sh",
+    "release:patch": "./scripts/release.sh --patch"
   },
   "dependencies": {
     "@tinkoff/utils": "^2.2.1",
