@@ -3,7 +3,6 @@ import { allSettled, fork } from "effector";
 import { useHotkeys } from "./useHotkeys";
 import { events as appEvents, $currentScreen, AppScreen } from "./model";
 import { countdownModel } from "../entitites/countdown";
-import { IntervalType } from "../entitites/countdown/constants";
 
 describe("useHotkeys", () => {
   beforeEach(() => {
@@ -58,7 +57,7 @@ describe("useHotkeys", () => {
 
     await allSettled(countdownModel.events.initFromSettings, {
       scope,
-      params: { interval: 1500, type: IntervalType.WORK },
+      params: 1500,
     });
 
     expect(scope.getState(countdownModel.$isRunning)).toBe(false);
@@ -83,7 +82,7 @@ describe("useHotkeys", () => {
 
     await allSettled(countdownModel.events.initFromSettings, {
       scope,
-      params: { interval: 1500, type: IntervalType.WORK },
+      params: 1500,
     });
 
     await allSettled(countdownModel.events.resume, { scope });
@@ -108,7 +107,7 @@ describe("useHotkeys", () => {
 
     await allSettled(countdownModel.events.initFromSettings, {
       scope,
-      params: { interval: 1500, type: IntervalType.WORK },
+      params: 1500,
     });
 
     expect(scope.getState(countdownModel.$isRunning)).toBe(false);
@@ -128,7 +127,7 @@ describe("useHotkeys", () => {
   });
 
   it("должен удалять обработчик при размонтировании", () => {
-    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+    const removeEventListenerSpy = jest.spyOn(window as any, "removeEventListener");
 
     const { unmount } = renderHook(() => useHotkeys());
 

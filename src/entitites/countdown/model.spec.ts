@@ -1,9 +1,10 @@
 import { allSettled, fork } from "effector";
 import { $countdownState, $time, $isPaused, $isRunning, $canEditTime, $hasActiveTimer, $currentInterval, domain, events } from "./model";
-import { CountdownState, IntervalType } from "./constants";
+import { CountdownState } from "./constants";
+import { createCountdownStartPayload } from "../../shared/testing";
 
 const SECONDS = 10;
-const START_PARAMS = { interval: SECONDS, type: IntervalType.WORK };
+const START_PARAMS = createCountdownStartPayload({ interval: SECONDS });
 
 describe("entity/countdown/model", () => {
   let dateNowSpy: jest.SpyInstance;
@@ -100,7 +101,7 @@ describe("entity/countdown/model", () => {
     const scope = fork();
 
     // interval=3: показываем 2, 1, 0, потом reset
-    await allSettled(events.start, { scope, params: { interval: 3, type: IntervalType.WORK } });
+    await allSettled(events.start, { scope, params: createCountdownStartPayload({ interval: 3 }) });
     expect(scope.getState($time)).toBe(2); // сразу -1
     expect(scope.getState($countdownState)).toBe(CountdownState.RUNNING);
 
@@ -193,9 +194,9 @@ describe("entity/countdown/model", () => {
       const scope = fork();
 
       // Инициализируем начальное время
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       expect(scope.getState($canEditTime)).toBe(true);
@@ -205,9 +206,9 @@ describe("entity/countdown/model", () => {
     it("должен быть false после resume (таймер запущен)", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       await allSettled(events.resume, { scope });
@@ -219,9 +220,9 @@ describe("entity/countdown/model", () => {
     it("должен быть false после паузы если таймер уже был запущен", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // Запускаем
@@ -239,9 +240,9 @@ describe("entity/countdown/model", () => {
     it("должен быть true после reset (можно снова редактировать)", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // Запускаем и ставим на паузу
@@ -260,9 +261,9 @@ describe("entity/countdown/model", () => {
     it("должен быть true после stop без сохранения (можно снова редактировать)", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // Запускаем
@@ -280,9 +281,9 @@ describe("entity/countdown/model", () => {
     it("должен быть true после stop с сохранением и последующего reset", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // Запускаем
@@ -307,9 +308,9 @@ describe("entity/countdown/model", () => {
     it("setTime должен обновлять $currentInterval только когда $canEditTime=true", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // До запуска - можно редактировать
@@ -325,9 +326,9 @@ describe("entity/countdown/model", () => {
     it("setTime НЕ должен обновлять $currentInterval когда таймер на паузе после запуска", async () => {
       const scope = fork();
 
-      await allSettled(events.initFromSettings, { 
-        scope, 
-        params: { interval: 1500, type: IntervalType.WORK } 
+      await allSettled(events.initFromSettings, {
+        scope,
+        params: 1500
       });
 
       // Запускаем и ставим на паузу
@@ -358,7 +359,7 @@ describe("entity/countdown/model", () => {
 
       await allSettled(events.initFromSettings, {
         scope,
-        params: { interval: 1500, type: IntervalType.WORK }
+        params: 1500
       });
 
       expect(scope.getState($isPaused)).toBe(true);
@@ -375,7 +376,7 @@ describe("entity/countdown/model", () => {
 
       await allSettled(events.initFromSettings, {
         scope,
-        params: { interval: 1500, type: IntervalType.WORK }
+        params: 1500
       });
 
       await allSettled(events.resume, { scope });
@@ -392,7 +393,7 @@ describe("entity/countdown/model", () => {
 
       await allSettled(events.start, {
         scope,
-        params: { interval: 1500, type: IntervalType.WORK }
+        params: createCountdownStartPayload({ interval: 1500 })
       });
 
       advanceTime(2000);
@@ -413,7 +414,7 @@ describe("entity/countdown/model", () => {
 
       await allSettled(events.initFromSettings, {
         scope,
-        params: { interval: 1500, type: IntervalType.WORK }
+        params: 1500
       });
 
       // Первый toggle: start

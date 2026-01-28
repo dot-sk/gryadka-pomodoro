@@ -1,8 +1,6 @@
 import { createDomain, sample } from "effector";
 import { countdownModel } from "../../entitites/countdown";
 import { StatEntry } from "./typings";
-import { StatEntryOwnTypes } from "./constants";
-import { IntervalType } from "../../entitites/countdown/constants";
 import {
   isBetweenTodayAndTomorrow,
   mapStatEntriesByDate,
@@ -22,7 +20,6 @@ const emptyEntry: StatEntry = {
   end: 0,
   time: 0,
   interval: 0,
-  type: StatEntryOwnTypes.INITIAL,
 };
 
 export const events = {
@@ -71,35 +68,14 @@ export const $todayEntries = $statEntriesHistory.map((entries) =>
 
 export const $totalToday = $todayEntries.map(sumStatEntriesTime);
 
-export const $latestWorkEntry = domain
-  .createStore<StatEntry | null>(null)
-  .on(events.push, (_, entry) => {
-    if (entry.type === IntervalType.WORK) {
-      return entry;
-    }
-
-    return null;
-  });
-
-export const $latestRestEntry = domain
-  .createStore<StatEntry | null>(null)
-  .on(events.push, (_, entry) => {
-    if (entry.type === IntervalType.REST) {
-      return entry;
-    }
-
-    return null;
-  });
-
 $statEntry
-  .on(countdownModel.events.start, (_, { interval, type }) => ({
+  .on(countdownModel.events.start, (_, { interval }) => ({
     ...emptyEntry,
     start: Date.now(),
-    type,
     interval,
   }))
   .on(countdownModel.events.end, (entry, { elapsedTime }) => {
-    if (entry.type === StatEntryOwnTypes.INITIAL) {
+    if (entry.start === 0) {
       return entry;
     }
 
@@ -112,7 +88,7 @@ $statEntry
 
 const statEntryIsCompletedEvent = sample({
   source: $statEntry,
-  filter: (entry) => entry.end > 0 && entry.type !== StatEntryOwnTypes.INITIAL,
+  filter: (entry) => entry.end > 0 && entry.start > 0,
 });
 
 sample({

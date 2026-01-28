@@ -1,7 +1,7 @@
 import { allSettled, fork, createStore } from "effector";
 import { countdownModel } from "../../entitites/countdown";
-import { IntervalType } from "../../entitites/countdown/constants";
 import { events, $fontReady } from "./model";
+import { createCountdownStartPayload } from "../../shared/testing";
 
 // Мок canvas
 jest.mock("../../shared/renderStringToDataURL/renderStringToDataURL", () => ({
@@ -43,7 +43,7 @@ describe("features/mainThread/model", () => {
     // Начальное значение при старте
     await allSettled(countdownModel.events.start, {
       scope,
-      params: { interval: 3, type: IntervalType.WORK },
+      params: createCountdownStartPayload({ interval: 3 }),
     });
 
     // Симулируем тики
@@ -68,7 +68,7 @@ describe("features/mainThread/model", () => {
       // Старт
       await allSettled(countdownModel.events.start, {
         scope,
-        params: { interval: 10, type: IntervalType.WORK },
+        params: createCountdownStartPayload({ interval: 10 }),
       });
 
       advanceTime(2000);
@@ -97,7 +97,7 @@ describe("features/mainThread/model", () => {
 
       await allSettled(countdownModel.events.start, {
         scope,
-        params: { interval: 10, type: IntervalType.WORK },
+        params: createCountdownStartPayload({ interval: 10 }),
       });
 
       advanceTime(2000);
@@ -126,7 +126,7 @@ describe("features/mainThread/model", () => {
 
       await allSettled(countdownModel.events.start, {
         scope,
-        params: { interval: 10, type: IntervalType.WORK },
+        params: createCountdownStartPayload({ interval: 10 }),
       });
 
       // При старте time=9, totalTime=10
@@ -144,7 +144,7 @@ describe("features/mainThread/model", () => {
 
       await allSettled(countdownModel.events.start, {
         scope,
-        params: { interval: 10, type: IntervalType.WORK },
+        params: createCountdownStartPayload({ interval: 10 }),
       });
 
       advanceTime(1000);

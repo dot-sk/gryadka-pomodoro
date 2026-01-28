@@ -26,7 +26,6 @@ const SETTINGS_DEFAULT = {
   workIntervals: [0.5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].join(";"),
   restIntervals: [5, 10, 15, 20, 25, 30, 60].join(";"),
   lastInterval: DEFAULT_WORK_INTERVAL,
-  lastIntervalType: "work",
 };
 
 const MAX_INTERVAL_SECONDS = 2 * 60 * 60; // 2 часа максимум
@@ -70,10 +69,6 @@ export const $restIntervals = $settings
 
 export const $lastInterval = $settings.map(
   (settings) => settings.lastInterval
-);
-
-export const $lastIntervalType = $settings.map(
-  (settings) => settings.lastIntervalType
 );
 
 // Подписка на изменения для сохранения в electron-store

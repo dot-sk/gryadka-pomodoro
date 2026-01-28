@@ -1,5 +1,5 @@
 import { combine, createDomain, merge, sample } from "effector";
-import { CountdownState, IntervalType } from "./constants";
+import { CountdownState } from "./constants";
 import {
   CountdownStartPayload,
   CountdownEndPayload,
@@ -19,10 +19,9 @@ export const events = {
   end: domain.event<CountdownEndPayload>(), // internal event
   reset: domain.event(),
   setTime: domain.event<number>(),
-  setType: domain.event<IntervalType>(),
   clockInterval: domain.event<number>(),
   showSuccess: domain.event(),
-  initFromSettings: domain.event<{ interval: number; type: IntervalType }>(),
+  initFromSettings: domain.event<number>(),
   togglePlayPause: domain.event(),
 };
 
@@ -30,7 +29,7 @@ ipcWorld.on(IpcChannels["clock:tick"], (_, msSinceLastTick) => {
   events.clockInterval(Number(msSinceLastTick))
 })
 
-const startTypeGuard = events.start.map(({ type }) => type ?? IntervalType.WORK);
+// Guards: фильтруют невалидные значения
 const startTimeGuard = events.start.filterMap(({ interval }) =>
   interval > 0 ? interval : undefined
 );
@@ -52,11 +51,6 @@ const stopGuard = sample({
 const stopAndSaveGuard = stopGuard.filter({ fn: ({ save }) => save === true });
 const stopWithoutSaveGuard = stopGuard.filter({ fn: ({ save }) => save !== true });
 
-export const $countdownType = domain
-  .createStore<IntervalType>(IntervalType.WORK)
-  .on(startTypeGuard, (_, type) => type)
-  .on(events.initFromSettings, (_, { type }) => type);
-
 export const $isRunning = $countdownState.map(
   (state) => state === CountdownState.RUNNING
 );
@@ -70,6 +64,7 @@ export const $isSuccess = $countdownState.map(
 );
 
 // Флаг: таймер "в процессе" (запущен или на паузе после запуска)
+// Используется чтобы заблокировать редактирование времени после первого старта
 // Сбрасывается при reset/stop
 export const $hasActiveTimer = domain
   .store(false)
@@ -78,12 +73,13 @@ export const $hasActiveTimer = domain
   .reset(events.reset);
 
 // Редактировать интервал можно только если нет активного таймера
+// (до первого запуска или после полного сброса)
 export const $canEditTime = $hasActiveTimer.map((hasActive) => !hasActive);
 
 export const $currentInterval = domain
   .store<number>(0)
   .on(startTimeGuard, (_, time) => time)
-  .on(events.initFromSettings, (_, { interval }) => interval);
+  .on(events.initFromSettings, (_, interval) => interval);
 
 // Когда можно редактировать время - currentInterval = time
 sample({
@@ -93,39 +89,47 @@ sample({
 });
 
 // Timestamp когда стартовали/возобновили текущий отрезок
+// Используется для drift-free расчета времени (не накапливаем погрешность)
 const $startedAt = domain
   .store<number>(0)
   .on(startTimeGuard, () => Date.now())
   .on(events.resume, () => Date.now())
   .reset(events.reset);
 
-// Сколько секунд было на момент старта текущего отрезка
+// Эффективное время на момент старта/возобновления текущего отрезка
+// При паузе сюда сохраняется текущее $time (см. строку 115), чтобы при resume продолжить с той же позиции
+// ВАЖНО: При старте = interval-1, т.к. первая секунда считается уже начавшейся (UX решение)
 const $effectiveInterval = domain
   .store<number>(0)
   .on(startTimeGuard, (_, interval) => interval - 1)
-  .on(events.initFromSettings, (_, { interval }) => interval - 1)
+  .on(events.initFromSettings, (_, interval) => interval - 1)
   .on(setTimeGuard, (_, time) => time)
   .reset(events.reset);
 
+// Обрабатываем clockInterval только когда таймер запущен (игнорируем во время паузы)
 const clockIntervalIsRunning = sample({
   source: events.clockInterval,
   filter: $isRunning
 });
 
+// Текущее отображаемое время
+// ВАЖНО: инициализируется как interval-1, т.к. первая секунда считается уже начавшейся
 export const $time = domain
   .store(0)
   .on(setTimeGuard, (_, time) => time)
   .on(startTimeGuard, (_, interval) => interval - 1)
-  .on(events.initFromSettings, (_, { interval }) => interval - 1);
+  .on(events.initFromSettings, (_, interval) => interval - 1);
 
-// $time на момент паузы становится новым effectiveInterval при resume
+// При паузе: сохраняем текущее $time в $effectiveInterval
+// Чтобы при resume продолжить с той же позиции
 sample({
   clock: events.pause,
   source: $time,
   target: $effectiveInterval,
 });
 
-// Вычисляем время из реального timestamp — нет дрифта
+// DRIFT-FREE расчет времени: вычисляем из реального timestamp, а не накапливаем тики
+// Это гарантирует что таймер не отстает и не убегает вперед
 sample({
   clock: clockIntervalIsRunning,
   source: combine($startedAt, $effectiveInterval),
@@ -136,27 +140,30 @@ sample({
   target: $time,
 });
 
+// Таймер закончился: время стало отрицательным
 const timeNegative = sample({
   source: $time,
   filter: (time) => time < 0,
 });
 
-// После save -> переход в SUCCESS
+// Переход в SUCCESS: либо юзер остановил с save=true, либо время вышло
 sample({
   clock: merge([stopAndSaveGuard, timeNegative]),
   target: events.showSuccess,
 });
 
-// reset countdown when timer is stopped without save
+// Stop без сохранения -> полный reset
 sample({
   clock: stopWithoutSaveGuard,
   target: events.reset,
 });
 
+// Вычисляем сколько времени реально прошло (для статистики)
 const $elapsedTime = combine($time, $currentInterval, (time, currentInterval) => ({
   elapsedTime: currentInterval - Math.max(0, time),
 }));
 
+// При завершении таймера отправляем событие end с прошедшим временем
 sample({
   clock: merge([stopAndSaveGuard, timeNegative]),
   source: $elapsedTime,
@@ -170,64 +177,66 @@ sample({
   target: events.setTime,
 });
 
-// Save last interval and type to settings when starting a timer
+// Save last interval to settings when starting a timer
 sample({
   clock: events.start,
   fn: ({ interval }) => ({ key: "lastInterval", value: interval }),
   target: settingsModel.events.set,
 });
 
-sample({
-  clock: events.start,
-  fn: ({ type }) => ({ key: "lastIntervalType", value: type }),
-  target: settingsModel.events.set,
-});
-
 // Load last interval from settings on init
-const $settingsData = combine({
-  interval: settingsModel.$lastInterval,
-  type: settingsModel.$lastIntervalType,
-});
-
 sample({
-  source: $settingsData,
-  filter: ({ interval }) => interval > 0,
-  fn: ({ interval, type }) => ({ interval, type: type as IntervalType }),
+  source: settingsModel.$lastInterval,
+  filter: (interval) => interval > 0,
   target: events.initFromSettings,
 });
 
-// Toggle play/pause logic
-const $toggleState = combine({
-  isPaused: $isPaused,
-  isRunning: $isRunning,
-  hasActiveTimer: $hasActiveTimer,
-  currentInterval: $currentInterval,
-  type: $countdownType,
-});
-
+// ============ Toggle play/pause logic ============
+// Определяем какое действие выполнить при toggle в зависимости от текущего состояния
 const togglePayload = sample({
   clock: events.togglePlayPause,
-  source: $toggleState,
+  source: combine({
+    isRunning: $isRunning,
+    isPaused: $isPaused,
+    hasActiveTimer: $hasActiveTimer,
+    currentInterval: $currentInterval,
+  }),
+  fn: (state) => {
+    // Если таймер запущен -> ставим на паузу
+    if (state.isRunning) {
+      return { action: 'pause' as const };
+    }
+
+    // Если таймер на паузе после запуска -> возобновляем
+    if (state.isPaused && state.hasActiveTimer) {
+      return { action: 'resume' as const };
+    }
+
+    // Если таймер не был запущен вообще -> стартуем
+    if (state.isPaused && !state.hasActiveTimer) {
+      return { action: 'start' as const, interval: state.currentInterval };
+    }
+
+    return { action: 'none' as const };
+  },
 });
 
-// Если таймер не был запущен вообще - используем start
+// Диспетчеризация действий
 sample({
   clock: togglePayload,
-  filter: ({ isPaused, isRunning, hasActiveTimer }) => isPaused && !isRunning && !hasActiveTimer,
-  fn: ({ currentInterval, type }) => ({ interval: currentInterval, type }),
-  target: events.start,
+  filter: ({ action }) => action === 'pause',
+  target: events.pause,
 });
 
-// Если таймер на паузе после запуска - resume
 sample({
   clock: togglePayload,
-  filter: ({ isPaused, hasActiveTimer }) => isPaused && hasActiveTimer,
+  filter: ({ action }) => action === 'resume',
   target: events.resume,
 });
 
-// Если таймер запущен - pause
 sample({
   clock: togglePayload,
-  filter: ({ isRunning }) => isRunning,
-  target: events.pause,
+  filter: ({ action, interval }) => action === 'start' && interval !== undefined,
+  fn: ({ interval }) => ({ interval: interval! }),
+  target: events.start,
 });

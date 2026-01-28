@@ -3,8 +3,7 @@ import { StatsPage } from './StatsPage';
 import { fork } from 'effector';
 import { Provider } from 'effector-react';
 import { statsModel } from '../../features/stats';
-import { IntervalType } from '../../entitites/countdown/constants';
-import type { StatEntry } from '../../features/stats/typings';
+import { createStatEntries } from '../../shared/testing';
 
 const meta: Meta<typeof StatsPage> = {
   title: 'Pages/StatsPage',
@@ -33,22 +32,12 @@ export const Empty: Story = {
 export const WithData: Story = {
   name: 'With Data',
   render: () => {
-    const mockEntries: StatEntry[] = [
-      {
-        start: Date.now() - 3600000,
-        end: Date.now() - 1800000,
-        time: 1800,
-        interval: 1500,
-        type: IntervalType.WORK,
-      },
-      {
-        start: Date.now() - 7200000,
-        end: Date.now() - 5400000,
-        time: 1800,
-        interval: 1500,
-        type: IntervalType.WORK,
-      },
-    ];
+    const mockEntries = createStatEntries(2, (index) => ({
+      start: Date.now() - (index + 1) * 3600000,
+      end: Date.now() - (index + 1) * 1800000,
+      time: 1800,
+      interval: 1500,
+    }));
 
     const scope = fork({
       values: [

@@ -1,8 +1,5 @@
-import { IntervalType } from "./constants";
-
 export type CountdownStartPayload = {
   interval: number;
-  type: IntervalType;
 };
 
 export type CountdownEndPayload = {

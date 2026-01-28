@@ -7,9 +7,8 @@ import {
   $totalToday,
   $statEntriesByDayForHeatmap,
 } from "./model";
-import { IntervalType } from "../../entitites/countdown/constants";
-import { StatEntryOwnTypes } from "./constants";
 import { formatSecondsDate } from "../../shared/utils";
+import { createStatEntry, createStatEntries } from "../../shared/testing";
 
 // функция возвращает дату сегодня в 12:00
 const getTodayNoonMs = () => {
@@ -42,7 +41,6 @@ describe("features/stats/model", () => {
       scope: statsScope,
       params: {
         interval: 2,
-        type: IntervalType.WORK,
       },
     });
 
@@ -58,7 +56,6 @@ describe("features/stats/model", () => {
     expect(firstEntry).toMatchObject({
       time: 2,
       interval: 2,
-      type: IntervalType.WORK,
     });
   });
 
@@ -69,7 +66,6 @@ describe("features/stats/model", () => {
       scope: statsScope,
       params: {
         interval: 2,
-        type: IntervalType.WORK,
       },
     });
 
@@ -85,23 +81,22 @@ describe("features/stats/model", () => {
       end: 0,
       time: 0,
       interval: 0,
-      type: StatEntryOwnTypes.INITIAL,
     });
   });
 
   it('должен удалить запись после события "remove"', async () => {
+    const testEntry = createStatEntry({
+      start: 1,
+      end: 2,
+      time: 3,
+      interval: 10,
+    });
+
     const statsScope = fork({
       values: [
         [
           $statEntriesHistory,
-          [
-            {
-              start: 1,
-              end: 2,
-              time: 3,
-              type: IntervalType.WORK,
-            },
-          ],
+          [testEntry],
         ],
       ],
     });
@@ -122,11 +117,11 @@ describe("features/stats/model", () => {
       values: [
         [
           $statEntriesHistory,
-          [1, 2, 3].map((time) => ({
+          createStatEntries(3, (index) => ({
             start: todayNoonMs,
             end: todayNoonMs,
-            time,
-            type: IntervalType.WORK,
+            time: index + 1, // 1, 2, 3
+            interval: 10,
           })),
         ],
       ],
@@ -142,13 +137,12 @@ describe("features/stats/model", () => {
         [
           $statEntriesHistory,
           [
-            {
+            createStatEntry({
               start: todayNoonMs,
               end: todayNoonMs,
               time: 3600, // 1 час в секундах
-              type: IntervalType.WORK,
               interval: 3600,
-            },
+            }),
           ],
         ],
       ],
