@@ -178,6 +178,15 @@ const TOMATO_SMALL: number[][] = [
   [0, 1, 1, 1, 0],
 ];
 
+// Иконка паузы 5x5 - две вертикальные палочки
+const PAUSE_ICON: number[][] = [
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+];
+
 let animationFrame = 0;
 
 interface RenderOptions {
@@ -188,7 +197,8 @@ interface RenderOptions {
 
 /**
  * Рисует dot matrix на canvas в стиле Flipper Zero.
- * Всегда показывает таймер с помидоркой (прогрессом).
+ * Если hasActiveTimer=false - показывает только анимированную помидорку (скринсейвер)
+ * Если hasActiveTimer=true - показывает таймер с помидоркой (прогрессом)
  * progress: 0-1, где 1 = полная помидорка, 0 = пустая
  * isPaused: не влияет на рендер, время всегда отображается
  */
@@ -196,16 +206,21 @@ export function renderStringToDataURL(
   text: string,
   _theme: 'dark' | 'light' = 'dark',
   canvas?: HTMLCanvasElement,
-  _isPaused?: boolean,
-  progress: number = 1
+  isPaused?: boolean,
+  progress: number = 1,
+  hasActiveTimer: boolean = true
 ): string {
-  return renderTimer(text, canvas, progress);
+  if (!hasActiveTimer) {
+    return renderTomatoScreensaver(canvas);
+  }
+  return renderTimer(text, canvas, progress, isPaused);
 }
 
 /**
  * Рендер таймера с помидоркой слева (помидорка уменьшается как прогресс-бар)
+ * При паузе вместо помидорки рисуется иконка паузы (две вертикальные палочки)
  */
-function renderTimer(text: string, canvas?: HTMLCanvasElement, progress: number = 1): string {
+function renderTimer(text: string, canvas?: HTMLCanvasElement, progress: number = 1, isPaused?: boolean): string {
   const canvasRender = canvas || document.createElement("canvas");
 
   const dotStep = DOT_SIZE + DOT_GAP;
@@ -227,8 +242,12 @@ function renderTimer(text: string, canvas?: HTMLCanvasElement, progress: number 
   let offsetX = PADDING;
   const offsetY = PADDING;
 
-  // Помидорка с прогрессом (заполняется снизу вверх)
-  drawTomatoWithProgress(ctx, offsetX, offsetY, progress);
+  // При паузе - иконка паузы, иначе помидорка с прогрессом
+  if (isPaused) {
+    drawDotMatrix(ctx, PAUSE_ICON, offsetX, offsetY);
+  } else {
+    drawTomatoWithProgress(ctx, offsetX, offsetY, progress);
+  }
   offsetX += tomatoPixelWidth + CHAR_GAP * 2;
 
   // Таймер

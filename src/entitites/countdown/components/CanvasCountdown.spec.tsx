@@ -17,6 +17,7 @@ jest.mock("../model", () => ({
     resume: jest.fn(),
     stop: jest.fn(),
     setTime: jest.fn(),
+    togglePlayPause: jest.fn(),
   },
 }));
 
@@ -92,7 +93,7 @@ describe("CanvasCountdown", () => {
       jest.clearAllMocks();
     });
 
-    it("должен вызывать resume при одинарном клике в состоянии паузы", () => {
+    it("должен вызывать togglePlayPause при одинарном клике", () => {
       mockUseUnit.mockReturnValue({
         time: 1200,
         currentInterval: 1500,
@@ -105,11 +106,12 @@ describe("CanvasCountdown", () => {
 
       fireEvent.click(container);
 
-      expect(events.resume).toHaveBeenCalledTimes(1);
+      expect(events.togglePlayPause).toHaveBeenCalledTimes(1);
       expect(events.pause).not.toHaveBeenCalled();
+      expect(events.resume).not.toHaveBeenCalled();
     });
 
-    it("должен вызывать pause при одинарном клике в состоянии выполнения", () => {
+    it("должен вызывать togglePlayPause при клике когда таймер запущен", () => {
       mockUseUnit.mockReturnValue({
         time: 1200,
         currentInterval: 1500,
@@ -122,7 +124,8 @@ describe("CanvasCountdown", () => {
 
       fireEvent.click(container);
 
-      expect(events.pause).toHaveBeenCalledTimes(1);
+      expect(events.togglePlayPause).toHaveBeenCalledTimes(1);
+      expect(events.pause).not.toHaveBeenCalled();
       expect(events.resume).not.toHaveBeenCalled();
     });
 
@@ -166,7 +169,7 @@ describe("CanvasCountdown", () => {
       jest.clearAllMocks();
     });
 
-    it("should toggle play/pause on Space key", () => {
+    it("should NOT handle Space key (handled by global useHotkeys)", () => {
       mockUseUnit.mockReturnValue({
         time: 1200,
         currentInterval: 1500,
@@ -178,10 +181,13 @@ describe("CanvasCountdown", () => {
 
       fireEvent.keyDown(window, { key: " " });
 
-      expect(events.pause).toHaveBeenCalledTimes(1);
+      // Локальный обработчик не должен вызывать pause/resume напрямую
+      expect(events.pause).not.toHaveBeenCalled();
+      expect(events.resume).not.toHaveBeenCalled();
+      expect(events.togglePlayPause).not.toHaveBeenCalled();
     });
 
-    it("should toggle play/pause on Enter key", () => {
+    it("should NOT handle Enter key (handled by global useHotkeys)", () => {
       mockUseUnit.mockReturnValue({
         time: 1200,
         currentInterval: 1500,
@@ -193,7 +199,10 @@ describe("CanvasCountdown", () => {
 
       fireEvent.keyDown(window, { key: "Enter" });
 
-      expect(events.resume).toHaveBeenCalledTimes(1);
+      // Локальный обработчик не должен вызывать pause/resume напрямую
+      expect(events.pause).not.toHaveBeenCalled();
+      expect(events.resume).not.toHaveBeenCalled();
+      expect(events.togglePlayPause).not.toHaveBeenCalled();
     });
 
     it("should decrease time by 60s on ArrowLeft when can edit", () => {

@@ -91,22 +91,33 @@ export const TOMATO_MATRIX: number[][] = [
   [0, 1, 1, 1, 0],
 ];
 
+// Иконка паузы 5x5 - две вертикальные палочки
+export const PAUSE_MATRIX: number[][] = [
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+  [1, 1, 0, 1, 1],
+];
+
 export interface MatrixLayoutOptions {
   /** Промежуток между символами в точках */
   charGap: number;
   /** Отступы в точках */
   padding: number;
+  /** Таймер на паузе - показывать иконку паузы вместо помидорки */
+  isPaused?: boolean;
 }
 
 /**
- * Создает матрицу для таймера (помидорка + текст + padding)
+ * Создает матрицу для таймера (помидорка/пауза + текст + padding)
  */
 export function createTimerMatrix(
   text: string,
   progress: number,
   options: MatrixLayoutOptions
 ): number[][] {
-  const { charGap, padding } = options;
+  const { charGap, padding, isPaused } = options;
 
   const charHeightDots = 5;
   const tomatoSizeDots = 5;
@@ -136,8 +147,12 @@ export function createTimerMatrix(
   let offsetX = padding;
   const offsetY = padding;
 
-  // Добавляем помидорку с прогрессом
-  addTomatoWithProgress(matrix, offsetX, offsetY, progress);
+  // При паузе - иконка паузы, иначе помидорка с прогрессом
+  if (isPaused) {
+    mergeMatrix(matrix, PAUSE_MATRIX, offsetX, offsetY);
+  } else {
+    addTomatoWithProgress(matrix, offsetX, offsetY, progress);
+  }
   offsetX += tomatoWidth + 2;
 
   // Добавляем символы

@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useUnit } from "effector-react";
 import { formatSeconds } from "../../../shared/utils";
 import {
   $time,
   $currentInterval,
   $isRunning,
+  $isPaused,
   $canEditTime,
   events,
 } from "../model";
@@ -12,10 +13,11 @@ import { DotMatrixCanvas } from "../../../shared/components/DotMatrixCanvas/DotM
 import { createTimerMatrix } from "../../../shared/utils/matrixUtils";
 
 export const CanvasCountdown = () => {
-  const { time, currentInterval: rawInterval, isRunning, canEditTime } = useUnit({
+  const { time, currentInterval: rawInterval, isRunning, isPaused, canEditTime } = useUnit({
     time: $time,
     currentInterval: $currentInterval,
     isRunning: $isRunning,
+    isPaused: $isPaused,
     canEditTime: $canEditTime,
   });
   const currentInterval = rawInterval || 1;
@@ -39,8 +41,8 @@ export const CanvasCountdown = () => {
 
   // Создаем матрицу для отображения
   const matrix = useMemo(
-    () => createTimerMatrix(timeString, progress, { charGap, padding }),
-    [timeString, progress, charGap, padding]
+    () => createTimerMatrix(timeString, progress, { charGap, padding, isPaused }),
+    [timeString, progress, charGap, padding, isPaused]
   );
 
   // Refs для отслеживания состояния зажатых клавиш
@@ -85,29 +87,17 @@ export const CanvasCountdown = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ([" ", "Enter", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-      }
-
-      // Toggle play/pause
-      if (e.key === " " || e.key === "Enter") {
-        if (isRunning) {
-          events.pause();
-        } else {
-          events.resume();
-        }
-      }
-
       // Adjust time (only before first start)
       if (canEditTimeRef.current && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
         const direction = e.key === "ArrowLeft" ? "left" : "right";
-        
+
         // Первое нажатие - сразу меняем время
         if (!e.repeat) {
           holdDirectionRef.current = direction;
           holdCountRef.current = 0;
           adjustTime(direction);
-          
+
           // Запускаем интервал для удержания
           clearHoldInterval();
           holdIntervalRef.current = setInterval(() => {
@@ -133,11 +123,7 @@ export const CanvasCountdown = () => {
   }, [isRunning]);
 
   const handleClick = () => {
-    if (isRunning) {
-      events.pause();
-    } else {
-      events.resume();
-    }
+    events.togglePlayPause();
   };
 
   const handleDoubleClick = () => {

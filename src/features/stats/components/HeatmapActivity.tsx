@@ -15,7 +15,7 @@ const INTENSITY_COLORS = [
 
 const HOUR_THRESHOLDS = [6, 4, 2, 0];
 const DAYS_PER_WEEK = 7;
-const DAY_LABELS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+const DAY_LABELS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 const VISIBLE_DAY_INDICES = [0, 2, 4];
 
 function getIntensityLevel(totalSeconds: number): number {
@@ -51,7 +51,7 @@ function DaySquare({ day, containerRef }: DaySquareProps): React.ReactElement {
         <div className="bg-black border border-orange-500 text-orange-100 text-xs px-3 py-2 rounded shadow-lg font-mono">
           <div className="font-semibold text-orange-400">{day.dateStr}</div>
           <div className="text-orange-200">
-            {hasActivity ? `${timeStr} (${hours.toFixed(1)}h)` : "NO DATA"}
+            {hasActivity ? `${timeStr} (${hours.toFixed(1)}ч)` : "НЕТ ДАННЫХ"}
           </div>
         </div>
       </Tooltip.Content>

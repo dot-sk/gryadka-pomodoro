@@ -27,7 +27,7 @@ describe("features/mainThread/model", () => {
 
   // Хелпер для создания scope с отслеживанием render событий
   const createScopeWithRenderTracking = () => {
-    const $renderCalls = createStore<Array<{ time: number; totalTime: number; isPaused: boolean }>>([], { domain: countdownModel.domain })
+    const $renderCalls = createStore<Array<{ time: number; totalTime: number; isPaused: boolean; hasActiveTimer: boolean }>>([], { domain: countdownModel.domain })
       .on(events.render, (calls, payload) => [...calls, payload]);
 
     const scope = fork({
@@ -157,6 +157,135 @@ describe("features/mainThread/model", () => {
       expect(lastCall.time).toBe(8);
       expect(lastCall.totalTime).toBe(10);
       // progress вычисляется как (time + 1) / totalTime = (8 + 1) / 10 = 0.9
+    });
+  });
+
+  describe("рендер анимации помидорки", () => {
+    it("должен рендерить анимацию каждую секунду когда таймер не активен (!hasActiveTimer)", async () => {
+      const { scope, $renderCalls } = createScopeWithRenderTracking();
+
+      // Инициализируем из настроек (но не стартуем таймер)
+      await allSettled(countdownModel.events.initFromSettings, {
+        scope,
+        params: 1500,
+      });
+
+      const callsAfterInit = scope.getState($renderCalls).length;
+
+      // Симулируем 3 тика часов (анимация должна обновляться)
+      for (let i = 0; i < 3; i++) {
+        advanceTime(1000);
+        await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+      }
+
+      const renderCalls = scope.getState($renderCalls);
+
+      // Должно быть: callsAfterInit + 3 (clockInterval)
+      expect(renderCalls.length).toBe(callsAfterInit + 3);
+
+      // Все вызовы должны иметь hasActiveTimer=false
+      const animationCalls = renderCalls.slice(-3);
+      animationCalls.forEach(call => {
+        expect(call.hasActiveTimer).toBe(false);
+      });
+    });
+
+    it("должен остановить анимацию когда таймер запускается (hasActiveTimer=true)", async () => {
+      const { scope, $renderCalls } = createScopeWithRenderTracking();
+
+      // Инициализируем
+      await allSettled(countdownModel.events.initFromSettings, {
+        scope,
+        params: 1500,
+      });
+
+      // Тик анимации (должен рендериться)
+      advanceTime(1000);
+      await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+
+      // Запускаем таймер
+      await allSettled(countdownModel.events.start, {
+        scope,
+        params: createCountdownStartPayload({ interval: 1500 }),
+      });
+
+      // После старта hasActiveTimer должен стать true
+      const callsAfterStart = scope.getState($renderCalls);
+      const startCall = callsAfterStart[callsAfterStart.length - 1];
+      expect(startCall.hasActiveTimer).toBe(true);
+
+      // Тики часов больше НЕ должны вызывать рендер (таймер активен)
+      const callsAfterStartCount = callsAfterStart.length;
+
+      for (let i = 0; i < 3; i++) {
+        advanceTime(1000);
+        await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+      }
+
+      // Рендер вызывается, но не на каждый clockInterval, а только при изменении $time
+      const finalCalls = scope.getState($renderCalls);
+      expect(finalCalls.length).toBeGreaterThan(callsAfterStartCount);
+
+      // Все вызовы после старта должны иметь hasActiveTimer=true
+      const timerCalls = finalCalls.slice(callsAfterStartCount);
+      timerCalls.forEach(call => {
+        expect(call.hasActiveTimer).toBe(true);
+      });
+    });
+
+    it("должен возобновить анимацию после reset таймера", async () => {
+      const { scope, $renderCalls } = createScopeWithRenderTracking();
+
+      // Запускаем таймер
+      await allSettled(countdownModel.events.start, {
+        scope,
+        params: createCountdownStartPayload({ interval: 1500 }),
+      });
+
+      // Сбрасываем
+      await allSettled(countdownModel.events.reset, { scope });
+
+      const callsAfterReset = scope.getState($renderCalls).length;
+
+      // Тик анимации (должен рендериться снова)
+      advanceTime(1000);
+      await allSettled(countdownModel.events.clockInterval, { scope, params: 1000 });
+
+      const renderCalls = scope.getState($renderCalls);
+      expect(renderCalls.length).toBe(callsAfterReset + 1);
+
+      const lastCall = renderCalls[renderCalls.length - 1];
+      expect(lastCall.hasActiveTimer).toBe(false);
+    });
+
+    it("должен рендерить анимацию когда шрифты загружены", async () => {
+      const scope = fork({
+        values: [[$fontReady, false]], // Шрифты еще не готовы
+      });
+
+      const $renderCalls = createStore<Array<{
+        time: number;
+        totalTime: number;
+        isPaused: boolean;
+        hasActiveTimer: boolean;
+      }>>([], { domain: countdownModel.domain })
+        .on(events.render, (calls, payload) => [...calls, payload]);
+
+      // Инициализируем (но шрифты не готовы - не должно быть рендера)
+      await allSettled(countdownModel.events.initFromSettings, {
+        scope,
+        params: 1500,
+      });
+
+      expect(scope.getState($renderCalls).length).toBe(0);
+
+      // Шрифты загрузились
+      await allSettled(events.setFontsReady, { scope, params: true });
+
+      // Должен быть рендер
+      const renderCalls = scope.getState($renderCalls);
+      expect(renderCalls.length).toBe(1);
+      expect(renderCalls[0].hasActiveTimer).toBe(false);
     });
   });
 });

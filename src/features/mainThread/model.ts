@@ -12,7 +12,7 @@ const domain = createDomain("mainThread");
 
 export const events = {
   setFontsReady: domain.event<boolean>(),
-  render: domain.event<{ time: number; totalTime: number; isPaused: boolean }>(),
+  render: domain.event<{ time: number; totalTime: number; isPaused: boolean; hasActiveTimer: boolean }>(),
 };
 
 export const $fontReady = domain
@@ -28,6 +28,7 @@ const $renderData = combine({
   totalTime: countdownModel.$currentInterval,
   isPaused: countdownModel.$isPaused,
   isRunning: countdownModel.$isRunning,
+  hasActiveTimer: countdownModel.$hasActiveTimer,
   fontReady: $fontReady,
 });
 
@@ -38,12 +39,21 @@ sample({
   clock: countdownModel.$time,
   source: $renderData,
   filter: ({ fontReady, isRunning }) => fontReady && isRunning,
-  fn: ({ time, totalTime, isPaused }) => ({ time, totalTime, isPaused }),
+  fn: ({ time, totalTime, isPaused, hasActiveTimer }) => ({ time, totalTime, isPaused, hasActiveTimer }),
   target: events.render,
 });
 
 // Во время паузы НЕ рендерим на каждый тик - время в трее остаётся статичным
 // Рендер при паузе происходит один раз через merge ниже
+
+// Рендер анимации помидорки когда таймер НЕ активен (на каждый тик часов)
+sample({
+  clock: countdownModel.events.clockInterval,
+  source: $renderData,
+  filter: ({ fontReady, hasActiveTimer }) => fontReady && !hasActiveTimer,
+  fn: ({ time, totalTime, isPaused, hasActiveTimer }) => ({ time, totalTime, isPaused, hasActiveTimer }),
+  target: events.render,
+});
 
 // Немедленный рендер при смене состояния (старт/пауза/резюм/стоп)
 sample({
@@ -55,16 +65,34 @@ sample({
   ]),
   source: $renderData,
   filter: ({ fontReady }) => fontReady,
-  fn: ({ time, totalTime, isPaused }) => ({ time, totalTime, isPaused }),
+  fn: ({ time, totalTime, isPaused, hasActiveTimer }) => ({ time, totalTime, isPaused, hasActiveTimer }),
+  target: events.render,
+});
+
+// Рендер при инициализации из настроек (при первом запуске приложения)
+sample({
+  clock: countdownModel.events.initFromSettings,
+  source: $renderData,
+  filter: ({ fontReady }) => fontReady,
+  fn: ({ time, totalTime, isPaused, hasActiveTimer }) => ({ time, totalTime, isPaused, hasActiveTimer }),
+  target: events.render,
+});
+
+// Рендер когда шрифты загружены (независимо от времени - покажем что есть)
+sample({
+  clock: events.setFontsReady,
+  source: $renderData,
+  filter: ({ fontReady }) => fontReady,
+  fn: ({ time, totalTime, isPaused, hasActiveTimer }) => ({ time, totalTime, isPaused, hasActiveTimer }),
   target: events.render,
 });
 
 // Подписка на событие рендера для отправки в IPC
-events.render.watch(({ time, totalTime, isPaused }) => {
+events.render.watch(({ time, totalTime, isPaused, hasActiveTimer }) => {
   // +1 к time т.к. показываем interval-1 при старте, но progress должен быть 100%
   const progress = totalTime > 0 ? Math.min(1, (time + 1) / totalTime) : 1;
   ipcWorld.send(
     IpcChannels["countdown-tick-as-image"],
-    renderStringToDataURL(formatSeconds(time), 'light', trayCanvas, isPaused, progress)
+    renderStringToDataURL(formatSeconds(time), 'light', trayCanvas, isPaused, progress, hasActiveTimer)
   );
 });
